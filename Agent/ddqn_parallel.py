@@ -57,7 +57,7 @@ class DQNAgent:
         self.iter = 0
         self.intersection = intersection
         self.num_roads = num_roads
-        self.debugLvl = 3
+        self.debugLvl = 2
 
         self.guided = guided
 
@@ -93,7 +93,7 @@ class DQNAgent:
 
         model._make_predict_function()
         target_model._make_predict_function()
-        random.seed(0)
+
 
         return model, target_model
 
@@ -114,17 +114,15 @@ class DQNAgent:
             else:
                 return random.randrange(self.action_size)
 
-        #act_values = self.ignore_invalid_actions(self.model.predict(state)[0], state)
         act_values = self.model.predict(state)[0]
-        #print(act_values)
-        #print("Phase selection", act_values[0], act_values[81],act_values[162],act_values[243])
+
 
         if self.laneChange:
             for i in range(len(act_values)):
                 out = decompose_action(i,self.num_roads)
 
-                imb_index = self.num_roads*4+1
-                conf_index = self.num_roads*3+1
+                imb_index = self.num_roads*4
+                conf_index = self.num_roads*3
 
                 for j in range(len(out)-1):
                     if (out[j+1] != 0 and state[0][imb_index+j] == 0) or \
@@ -151,7 +149,7 @@ class DQNAgent:
                     target[0][action] = reward + self.gamma * t[max_action]
 
 
-                self.model.fit(state, target, epochs=1, verbose=0)
+                self.model.fit(state, target, epochs=4, verbose=0)
             if self.epsilon > self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
 
@@ -232,87 +230,8 @@ class DQNAgent:
             self.replay(16)
 
 
-        if self.iter%2 == 0 and self.iter != 0:
+        if self.iter%20 == 0 and self.iter != 0:
             self.copy_model()
 
 
         self.iter += 1
-
-'''
-DEBUG = 3
-
-phases = 4
-num_roads = 4
-vehicle_step = 5
-actions = phases
-
-
-action = np.zeros(phases)
-
-#  Parameters for Q function
-
-traffic_env = Intersection(id)
-#traffic_env.enable_reset()
-
-# updating values
-curr_phase = 0
-curr_road_loads = np.zeros(shape=num_roads*2+12)
-next_road_loads = np.zeros(shape=num_roads*2+12)
-signal_pattern = np.zeros(shape=(1,100),dtype=np.int)
-moving_avg = 0
-moving_que = deque(maxlen=100)
-dp = Display()
-
-iterations = 25000
-
-state_size = 21
-action_size = 324
-agent = DQNAgent(state_size,action_size)
-
-if SAVE_N_RESTORE:
-    agent.load("weights")
-
-reward_buffer = np.empty(shape=0, dtype=float)
-
-
-
-for i in range(0, iterations):
-    print(i)
-
-    states = np.insert(curr_road_loads, 0, curr_phase)
-    states = np.reshape(states, [1, state_size])
-    action = agent.act(states)
-
-    next_phase, next_road_loads, reward, is_done = traffic_env.step(action)
-    reward_buffer =  np.append(reward_buffer, reward)
-    next_states = np.insert(next_road_loads, 0, next_phase)
-    if DEBUG > 2:
-        print("Next state: ", next_states)
-    next_states = np.reshape(next_states, [1, state_size])
-
-    agent.remember(states, action, reward, next_states, is_done)
-
-    curr_phase = next_phase
-    curr_road_loads = next_road_loads
-
-
-    if i > 50:
-        agent.replay(32)
-
-# moving average **** TODO: Declare a separate function
-
-    if SAVE:
-        agent.save("weights")
-
-    # dp.figure(moving_avg, i)
-    # moving average ****
-if SAVE:
-    agent.save("weights")
-traffic_env.writeTofile('Multilane_2')
-traffic_env.printArrayData()
-dp.single_arr(reward_buffer)
-#dp.colorMap(signal_pattern)
-
-print("Training finished.\n") '''
-
-

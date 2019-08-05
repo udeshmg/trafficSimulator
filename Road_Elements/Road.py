@@ -1,12 +1,13 @@
 import numpy as np
 from Road_Elements.Lane import Lane
 from Road_Elements.Vehicles import VehicleBlock
+from Stat_Reporter.StatReporter import Reporter
 
 DEBUG = 3
 
 class Road:
 
-    def __init__(self, rid, num_of_lanes):  # road id
+    def __init__(self, rid, num_of_lanes, timeToTravel=0):  # road id
         self.straight_v_list = np.empty(shape=0, dtype=VehicleBlock)  # vehicles turning left and straight
         self.right_Turn_v_list = np.empty(shape=0, dtype=VehicleBlock)  # vehicles turning right
 
@@ -21,16 +22,23 @@ class Road:
 
         self.straight_v_list_downstream = np.empty(shape=0, dtype=VehicleBlock)  # vehicles turning left and straight
         self.right_Turn_v_list_downstream = np.empty(shape=0, dtype=VehicleBlock)  # vehicles turning right
+        self.vehiclesFromUpstream = []
+        self.vehiclesFromDownstream = []
+        self.timeToTravel = timeToTravel
 
         self.trafficImbalance = 0
         self.trafficImbalance_counter = 0
 
-        self.checkConsistent = 20
-        self.lane_capacity = 5
+        self.checkConsistent = 12
+        self.lane_capacity = 4
         self.enable_check = True
 
         self.upstream_id = 0
         self.downstream_id = 0
+
+        self.roadConf = np.empty(shape=0,dtype=int)
+
+        self.reporter = Reporter.getInstance()
 
 
         # Init Lanes
@@ -127,7 +135,10 @@ class Road:
     '''
 
     def add_block(self, vb, direc):
+
+        #print("Vehicle added : RID", self.id, " Vehicle ID ", vb.id)
         if direc == 'DOWN':
+            vb.setCurrentRoadDetails(self.id, 'DOWN')
             if self.get_num_vehicles(self.downstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
                 if vb.get_direction() == 'S' or vb.get_direction() == 'L':
                     self.straight_v_list_downstream = np.append(self.straight_v_list_downstream, vb)
@@ -137,6 +148,7 @@ class Road:
                 if DEBUG > 4:
                     print(" Number of vehicles added : ", self.id, vb.get_num_vehicles(), vb.get_direction())
         else:
+            vb.setCurrentRoadDetails(self.id, 'UP')
             if self.get_num_vehicles(self.upstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
                 if vb.get_direction() == 'S' or vb.get_direction() == 'L':
                     self.straight_v_list = np.append(self.straight_v_list, vb)
@@ -173,7 +185,7 @@ class Road:
 
             if self.is_in_upstream_change:
                 if id == self.upstream_id:
-                    remain_cap = self.capacity(self.upstream_id, 'IN') - 5
+                    remain_cap = self.capacity(self.upstream_id, 'IN') - self.lane_capacity
                     print(" Upstream:", self.id, " Input increasing: ", remain_cap)
                 else:
                     remain_cap = self.capacity(self.downstream_id, 'IN') * 0.5
@@ -181,7 +193,7 @@ class Road:
 
             elif self.is_out_upstream_change:
                 if id == self.downstream_id:
-                    remain_cap = self.capacity(self.downstream_id, 'IN') - 5
+                    remain_cap = self.capacity(self.downstream_id, 'IN') - self.lane_capacity
                     print(" Downstream:", self.id, " Input increasing: ", remain_cap)
                 else:
                     remain_cap = self.capacity(self.upstream_id, 'IN') * 0.5
@@ -246,7 +258,8 @@ class Road:
                             if self.straight_v_list_downstream[pointer].get_direction() == 'S':
                                 if not straight_blocked:
                                     self.straight_v_list_downstream[pointer].reduce_vehicles(remain_cap)
-                                    vb = VehicleBlock(remain_cap, self.straight_v_list_downstream[pointer].get_route())
+                                    vb = VehicleBlock(remain_cap, self.straight_v_list_downstream[pointer].get_route(),
+                                                      self.straight_v_list_downstream[pointer].id)
                                     vb.update_direction()
                                     vb.abs_time = self.straight_v_list_downstream[pointer].abs_time
                                     vehicles = np.append(vehicles, vb)
@@ -537,23 +550,36 @@ class Road:
         for i in range(0, self.right_Turn_v_list_downstream.size):
             self.right_Turn_v_list_downstream[i].step(time_step)
 
+        for i in range(len(self.vehiclesFromUpstream)):
+            self.vehiclesFromUpstream[i][0].absStep(time_step)
+            self.vehiclesFromUpstream[i][1] +=  time_step
+
+        for i in range(len(self.vehiclesFromDownstream)):
+            self.vehiclesFromDownstream[i][0].absStep(time_step)
+            self.vehiclesFromDownstream[i][1] +=  time_step
+
+        self.removeFromTravellingQueue()
+
         # self.remove_outgoing_vehicles(self.capacity('OUT'))
 
         if (self.get_num_vehicles(self.downstream_id) - self.get_num_vehicles(self.upstream_id)) / max(self.get_num_vehicles(self.downstream_id), self.get_num_vehicles(self.upstream_id),
-                                                                   20) > 0.5:
-            self.trafficImbalance_counter = min(50, self.trafficImbalance_counter + 1)  # out going traffic high
+                                                                   20) > 0.47:
+            self.trafficImbalance_counter = min(60, self.trafficImbalance_counter + 1)  # out going traffic high
         if (self.get_num_vehicles(self.upstream_id)- self.get_num_vehicles(self.downstream_id)) / max(self.get_num_vehicles(self.downstream_id), self.get_num_vehicles(self.upstream_id),
-                                                                   20) > 0.5:
-            self.trafficImbalance_counter = max(-50, self.trafficImbalance_counter - 1)
+                                                                   20) > 0.47:
+            self.trafficImbalance_counter = max(-60, self.trafficImbalance_counter - 1)
 
         if (self.trafficImbalance_counter > 0) and (self.get_num_vehicles(self.upstream_id) - self.get_num_vehicles(self.downstream_id)) > 2:
             self.trafficImbalance_counter = 0
         if (self.trafficImbalance_counter < 0) and (self.get_num_vehicles(self.downstream_id) - self.get_num_vehicles(self.upstream_id)) > 2:
             self.trafficImbalance_counter = 0
+        if self.get_num_vehicles(self.downstream_id) == self.get_num_vehicles(self.upstream_id):
+            self.trafficImbalance_counter = 0
 
         # print("Imbalance counter", self.id, self.trafficImbalance_counter)
 
         self.get_traffic_details()
+        self.roadConf = np.append(self.roadConf, (self.get_in_lanes_num(self.upstream_id)))
 
     '''
         Capacity of the Road in one direction 
@@ -575,7 +601,7 @@ class Road:
             print("Lane and capacity ", direc, self.id, cap)
 
         if id == self.downstream_id:
-            cap = self.num_of_lanes*5 - cap
+            cap = self.num_of_lanes*self.lane_capacity - cap
 
         return cap
 
@@ -611,7 +637,55 @@ class Road:
     def set_outgoing_traffic(self, num_vehicles):
         self.outgoing_traffic = min(260, self.outgoing_traffic + num_vehicles)
 
-    def set_outgoing_vb(self, vb, id):
+    def set_outgoing_vb(self,vb,id):
+        if id == self.upstream_id:
+            while vb.size != 0:
+                temp = vb[0]
+                vb = np.delete(vb,0)
+                if temp.turn_direction.size != 0:
+                    temp.setCurrentRoadDetails(self.id, 'DOWN')
+                    self.vehiclesFromUpstream.append([temp, 0])
+                else:
+                    temp.finaliseRoute()
+        else:
+            while vb.size != 0:
+                temp = vb[0]
+                vb = np.delete(vb,0)
+                if temp.turn_direction.size != 0:
+                    temp.setCurrentRoadDetails(self.id, 'UP')
+                    self.vehiclesFromDownstream.append([temp, 0])
+                else:
+                    temp.finaliseRoute()
+
+        return 0,0
+
+
+    def removeFromTravellingQueue(self):
+        timeStepReached = False
+        vbs = np.empty(shape=0, dtype=VehicleBlock)
+        while (not timeStepReached) and len(self.vehiclesFromUpstream) != 0:
+            if self.vehiclesFromUpstream[0][1] >= self.timeToTravel:
+                vbs = np.append(vbs, self.vehiclesFromUpstream.pop(0)[0])
+            else:
+                timeStepReached = True
+
+
+
+        self.moveTowaitingQueue(vbs, self.upstream_id)
+
+        timeStepReached = False
+        vbs = np.empty(shape=0, dtype=VehicleBlock)
+        while (not timeStepReached) and len(self.vehiclesFromDownstream) != 0:
+            if self.vehiclesFromDownstream[0][1] >= self.timeToTravel:
+                vbs = np.append(vbs, self.vehiclesFromDownstream.pop(0)[0])
+            else:
+                timeStepReached = True
+
+
+        self.moveTowaitingQueue(vbs, self.downstream_id)
+
+
+    def moveTowaitingQueue(self, vb, id):
         time = 0
         vehi = 0
         if id == self.upstream_id:
@@ -622,8 +696,7 @@ class Road:
                     elif vb[i].get_direction() == 'R':
                         self.right_Turn_v_list_downstream = np.append(self.right_Turn_v_list_downstream,vb[i])
                 else:
-                    vehi += vb[i].num_vehicles
-                    time += vb[i].abs_time*vehi
+                    vb[i].finaliseRoute()
 
 
 
@@ -635,8 +708,7 @@ class Road:
                     else:
                         self.right_Turn_v_list = np.append(self.right_Turn_v_list,vb[i])
                 else:
-                    vehi += vb[i].num_vehicles
-                    time += vb[i].abs_time*vehi
+                    vb[i].finaliseRoute()
 
         return time, vehi
 
@@ -670,18 +742,21 @@ class Road:
         self.right_road = road
 
     def get_traffic_imbalance(self, id):
-        if self.trafficImbalance_counter > 30:
+        if self.trafficImbalance_counter >= 30:
             if id == self.upstream_id:
                 return 1  # outgoing traffic high
             else:
                 return 2
-        elif self.trafficImbalance_counter < -30:
+        elif self.trafficImbalance_counter <= -30:
             if id == self.upstream_id:
                 return 2
             else:
                 return 1
         else:
             return 0
+
+    def setRoadConfigurationData(self):
+        self.reporter.setRoadData(self.id, self.roadConf)
 
     def get_id(self):
         return self.id

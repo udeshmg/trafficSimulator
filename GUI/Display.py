@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+from matplotlib import colors
 DEBUG_LEVEL = 1
 
 
@@ -8,6 +9,7 @@ DEBUG_LEVEL = 1
 class Display:
 
     def __init__(self):
+        pass
         print("Setting up display")
         # plt.axis([0, 10, -1000, 1000])
 
@@ -54,6 +56,14 @@ class Display:
 
 
     @staticmethod
+    def heatMap(arr, figure_num):
+        plt.figure(figure_num)
+        cmap = colors.ListedColormap(['green', 'red','gray'])
+        bounds = [2,3,4]
+        norm = colors.BoundaryNorm(bounds, cmap.N)
+        plt.imshow(arr, cmap=cmap, interpolation='nearest',norm=norm)
+
+    @staticmethod
     def figure(average_val, i, figure_num=5):
         plt.figure(figure_num)
         plt.scatter(i, average_val, edgecolors='r', c=None, s=1)
@@ -81,11 +91,12 @@ class Display:
         plt.show()
 
     @staticmethod
-    def colorMap(array):
-        plt.figure(1)
+    def colorMap(array,figNum,name='config'):
+        plt.figure(figNum)
+        plt.ylabel(name)
         plt.imshow(array, interpolation="nearest", origin="upper",aspect='auto')
         plt.colorbar()
-        plt.show()
+
 
 
 

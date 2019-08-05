@@ -1,3 +1,4 @@
+from Stat_Reporter.StatReporter import Reporter
 import numpy as np
 
 class VehicleBlock:
@@ -20,9 +21,13 @@ class VehicleBlock:
         self.current_time = 0
         self.abs_time = 0
         self.id = id
-
+        self.currentRoadId = 0
+        self.currentDirInRoad = 'UP'
+        self.freeFlowTime = 0
         self.turn_direction = np.array(direc)
+        self.turn_direction = np.append(self.turn_direction, 'S')
         self.debugLevel = debugLevel
+        self.reporter = Reporter.getInstance()
 
         if self.debugLevel > 2:
             print("Generated id", self.id, " Path ", self.turn_direction)
@@ -41,6 +46,23 @@ class VehicleBlock:
     def step(self, time_step):
         self.current_time += time_step
         self.abs_time += time_step
+
+        if self.debugLevel > 2:
+            print("Vehicle ID: ", self.id, " time:", self.abs_time, end = ''),
+            print(" Road id: ", self.currentRoadId, " Dir:", self.currentDirInRoad, end = '')
+            print(" Route: ", self.turn_direction)
+
+        return self.current_time
+
+    def absStep(self, time_step):
+        self.abs_time += time_step
+
+        if self.debugLevel > 2:
+            print(" ABS: Vehicle ID: ", self.id, " time:", self.abs_time, end = ''),
+            print(" ABS: Road id: ", self.currentRoadId, " Dir:", self.currentDirInRoad, end = '')
+            print(" ABS: Route: ", self.turn_direction)
+            print(" Free flow time: ", self.freeFlowTime)
+
         return self.current_time
 
     '''
@@ -50,6 +72,10 @@ class VehicleBlock:
         returns:
             Returns the total time of all vehicles in the block    
     '''
+
+    def setCurrentRoadDetails(self,rid,dir='UP'):
+        self.currentRoadId = rid
+        self.currentDirInRoad = dir
 
     def waiting_time(self):
         if self.debugLevel  > 3:
@@ -74,6 +100,9 @@ class VehicleBlock:
         returns:
             num_vehicles: number of vehicles
     '''
+
+    def finaliseRoute(self):
+        self.reporter.addVehicleData([[self.id, self.abs_time, self.freeFlowTime]])
 
     def get_num_vehicles(self):
         return self.num_vehicles

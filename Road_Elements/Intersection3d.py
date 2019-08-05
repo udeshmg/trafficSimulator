@@ -9,6 +9,7 @@ from collections import deque
 from Road_Elements.Lane import Lane
 from Road_Elements.Vehicles import VehicleBlock
 from Road_Elements.Road import Road
+from Stat_Reporter.StatReporter import Reporter
 
 alpha = 0.2 # reducing this diverge the results in the case of Multilane conf.
 beta = 0.01
@@ -29,10 +30,10 @@ ENABLE_REPORTING = False
 
 class Intersection:
     q_length_step_size = 6
-    num_phases = 4
-    num_roads = 4
-    curr_waiting_time = 0
-    curr_phase = 0
+    #num_phases = 4
+    #num_roads = 4
+    #curr_waiting_time = 0
+    #curr_phase = 0
     dp = Display()
     if ENABLE_DISPLAY:
         gui = Tk()
@@ -43,6 +44,9 @@ class Intersection:
     def __init__(self, id, num_roads):
         self.intersectionID = id
         self.num_roads = num_roads
+        self.debugLvl = 2
+        self.curr_phase = 0
+        self.stepSize = 10
 
         self.road = np.empty(shape=0, dtype=Road)
 
@@ -57,6 +61,7 @@ class Intersection:
         for i in range(self.num_roads* 3):
             self.average_qLen_buffer[i] = deque(maxlen=LENGTH)
 
+        self.reporter = Reporter.getInstance()
 
         if ENABLE_DISPLAY:
             self.env_sim.simulator()
@@ -85,6 +90,10 @@ class Intersection:
         self.abs_time_buffer = np.empty(shape=0, dtype=float)
         self.abs_throughput_buffer = np.empty(shape=0, dtype=float)
 
+        self.reporter_queue = np.empty(shape=(1,5))
+        # iteration, time of vehicle leaving intersection, count
+        #            time of vehicles currently at queue, count
+
         self.inst_time = 0
         self.inst_vehi = 0
 
@@ -110,7 +119,7 @@ class Intersection:
 
     def addRoad(self, road):
         self.road = np.append(self.road, road)
-        print(self.road[0].id)
+        #print(self.road[0].id)
 
     def setRoadConnection(self):
         # Road MAP
@@ -138,9 +147,10 @@ class Intersection:
         #  Pre reward calculation
 
         self.prev_wait_time, tmp = self.total_wait_time()
+        vehiclesCount = self.total_vehicles()
         action_set = self.decompose_action(action, self.num_roads)
-        if self.enable_report:
-            print(action_set)
+        if self.enable_report and self.debugLvl > 2:
+            print("Intersection ID: ", self.intersectionID, action_set)
 
         is_first = False
         if (self.curr_phase != action_set[0]):
@@ -148,7 +158,8 @@ class Intersection:
             #self.local_step(3)
 
         self.curr_phase = action_set[0]
-
+        wait_time = 0
+        vehicles = 0
         if self.num_roads == 4:
             if action_set[0] < 2:
                 wait_time, vehicles = self.removeBlock(action_set[0], 'S', is_first)
@@ -182,6 +193,9 @@ class Intersection:
                 wait_time += tmp_a
                 vehicles += tmp_b
 
+        for i in self.vehicles_to_transfer:
+            for j in i[0]: # i[0] : vehicles i[1] road
+                j.step(self.stepSize)
 
         self.neg_reward = 0
 
@@ -190,8 +204,9 @@ class Intersection:
             if iter == 1:
 
                 if self.road[index].get_traffic_imbalance(self.intersectionID) == 2 and self.road[index].get_change_counter() < 2:
-                    if DEBUG > 1:
-                        print("Change lane direction: road id", index, " Increase")
+                    if self.debugLvl > 1:
+                        print("Intersection ID", self.intersectionID,
+                              "Change lane direction: road id", index, " Increase")
                     # check for whole network
 
 
@@ -207,8 +222,9 @@ class Intersection:
             elif iter == 2:
 
                 if self.road[index].get_traffic_imbalance(self.intersectionID) == 1 and self.road[index].get_change_counter() < 2:
-                    if DEBUG > 1:
-                        print("Change lane direction: road id", index, " Decrease")
+                    if self.debugLvl > 1:
+                        print("Intersection ID", self.intersectionID,
+                              "Change lane direction: road id", index, " Decrease")
 
 
 
@@ -231,7 +247,8 @@ class Intersection:
 
 
         if not self.local_view:
-            print("Using Guidance")
+            if  self.debugLvl > 2:
+                print("IntersectionID: ", self.intersectionID ," Using Guidance")
             for j in range(len(self.request_buffer)):
                 id = self.get_local_road_id(self.request_buffer[j][0])
                 self.road[id].change_direction(self.request_buffer[j][1], self.road[id].upstream_id)
@@ -256,40 +273,42 @@ class Intersection:
         # Remove outgoing traffic from a selected road at step
         #self.road[self.iter%4].remove_outgoing_vehicles(int(self.road[self.iter%4].capacity('OUT')*1.5))
         #self.road[(self.iter+2)%4].remove_outgoing_vehicles(int(self.road[(self.iter+2)%4].capacity('OUT')))
-
-
-        self.highest_wait_time.append(wait_time/max(vehicles, 1))
-
-        out_wait_highest = self.deque_highest_val(self.highest_wait_time)
-        '''Figure ONE: wait_time per vehicle'''
-        # self.dp.figure_time(wait_time/max(vehicles, 1), self.iter, 1)
-
-
-        self.inst_time = self.moving_avg(wait_time,4,self.iter,self.waiting_time_que,self.wait_time)
-        self.inst_vehi = self.moving_avg(vehicles,4,self.iter,self.vehicle_num_que,self.vehicles)
-
-        self.wait_time = self.moving_avg(wait_time,SIZE,self.iter,self.waiting_time_que,self.wait_time)
-        self.vehicles = self.moving_avg(vehicles,SIZE,self.iter,self.vehicle_num_que,self.vehicles)
-
-        avg_wait_time = 0
-        if self.vehicles != 0:
-            avg_wait_time = self.wait_time / self.vehicles
-
-        '''Figure TWO: vehicle throughput per time'''
-        #self.dp.figure_time(self.vehicles, self.iter, 2)
-        self.throughput_buffer = np.append(self.throughput_buffer, self.vehicles)
-        '''Figure THREE: average vehicle wait time (last 1000 cycles)'''
-        if self.iter > 0:
-            #self.dp.figure_time(avg_wait_time, self.iter, 3)
-            self.wait_time_buffer = np.append(self.wait_time_buffer,avg_wait_time)
-
-        self.abs_time = self.moving_avg(abs_time, abs_SIZE, self.iter, self.abs_time_que, self.abs_time)
-        self.abs_vehicles = self.moving_avg(abs_vehicles, abs_SIZE, self.iter, self.abs_vehicle_num_que, self.abs_vehicles)
-
-        self.abs_time_buffer = np.append(self.abs_time_buffer, self.abs_time)
-        self.abs_throughput_buffer = np.append(self.abs_throughput_buffer, self.abs_vehicles)
-
+        #
+        #
+        #self.highest_wait_time.append(wait_time/max(vehicles, 1))
+        #
+        #out_wait_highest = self.deque_highest_val(self.highest_wait_time)
+        #'''Figure ONE: wait_time per vehicle'''
+        ## self.dp.figure_time(wait_time/max(vehicles, 1), self.iter, 1)
+        #
+        #
+        #self.inst_time = self.moving_avg(wait_time,4,self.iter,self.waiting_time_que,self.wait_time)
+        #self.inst_vehi = self.moving_avg(vehicles,4,self.iter,self.vehicle_num_que,self.vehicles)
+        #
+        #self.wait_time = self.moving_avg(wait_time,SIZE,self.iter,self.waiting_time_que,self.wait_time)
+        #self.vehicles = self.moving_avg(vehicles,SIZE,self.iter,self.vehicle_num_que,self.vehicles)
+        #
+        #avg_wait_time = 0
+        #if self.vehicles != 0:
+        #    avg_wait_time = self.wait_time / self.vehicles
+        #
+        #'''Figure TWO: vehicle throughput per time'''
+        ##self.dp.figure_time(self.vehicles, self.iter, 2)
+        #self.throughput_buffer = np.append(self.throughput_buffer, self.vehicles)
+        #'''Figure THREE: average vehicle wait time (last 1000 cycles)'''
+        #if self.iter > 0:
+        #    #self.dp.figure_time(avg_wait_time, self.iter, 3)
+        #    self.wait_time_buffer = np.append(self.wait_time_buffer,avg_wait_time)
+        #
+        #self.abs_time = self.moving_avg(abs_time, abs_SIZE, self.iter, self.abs_time_que, self.abs_time)
+        #self.abs_vehicles = self.moving_avg(abs_vehicles, abs_SIZE, self.iter, self.abs_vehicle_num_que, self.abs_vehicles)
+        #
+        #self.abs_time_buffer = np.append(self.abs_time_buffer, self.abs_time)
+        #self.abs_throughput_buffer = np.append(self.abs_throughput_buffer, self.abs_vehicles)
         self.iter += 1
+
+        self.reporter_queue = np.append(self.reporter_queue, [[self.iter, wait_time, vehicles,
+                                                               self.prev_wait_time, vehiclesCount]],axis=0)
 
         vehicles_list = np.empty(shape=0,dtype=int)
         for i in range(self.num_roads):
@@ -302,13 +321,6 @@ class Intersection:
             state_vector.append(min(50, int(vehicles_list[i+self.num_roads])))
             state_vector.append(min(50, int(vehicles_list[i])))
             state_vector.append(int(self.road[i].get_outgoing_vehicles(self.intersectionID)))
-
-        #if self.enable_report:
-        #    print("Intersection id", self.intersectionID, state_vector)
-
-        ### Statistics and Graph usage END###
-
-        #self.update_env()
 
 
     def getStates(self):
@@ -331,17 +343,14 @@ class Intersection:
             reward = -1
         else:
             reward = (1 - alpha)*((self.prev_wait_time - next_wait_time)/max(self.prev_wait_time,next_wait_time) - next_wait_time/self.max_wait_time) - alpha*(imbalance/maxVehicleGaP)
-            #reward = (prev_wait_time - next_wait_time + (
-            #            total_vehicles * TIME_STEP)) - alpha * next_wait_time - time_gap * beta
-        #reward = pre_reward - reward
 
-        if DEBUG:
-            print("Reward given : ", reward)
-            print("Time : ", next_wait_time, self.prev_wait_time)
+
+        if self.debugLvl > 1:
+            print("IntersectionID: ", self.intersectionID ," Reward given : ", reward)
+            print("IntersectionID: ", self.intersectionID ," Time : ", next_wait_time, self.prev_wait_time)
 
         done = False
         if not self.disable_reset:
-
             if self.iter%100 == 0:
                 self.reset()
                 done = True
@@ -380,18 +389,17 @@ class Intersection:
 
         plt_vector = []
         state_vector = []
-        #state_vector.append(self.curr_phase)
-        for i in range(0, self.num_roads):
 
+        for i in range(0, self.num_roads):
             state_vector.append(min(50, int(vehicles_list[i+self.num_roads]/self.road[i].get_in_lanes_num(self.intersectionID))))
             state_vector.append(min(50, int(vehicles_list[i]/self.road[i].get_in_lanes_num(self.intersectionID))))
             if ENABLE_DISPLAY:
                 plt_vector.append(vehicles_list[i+self.num_roads])
                 plt_vector.append(vehicles_list[i])
-            #state_vector.append(self.map_state(self.road[i].get_num_vehicles('S')))
             if self.laneChange:
                 state_vector.append(int(self.road[i].get_outgoing_vehicles(self.intersectionID)/(self.road[i].num_of_lanes - self.road[i].get_in_lanes_num(self.intersectionID))))
-        if self.enable_report:
+
+        if self.debugLvl>3:
             print("Intersection id", self.intersectionID, state_vector)
         for i in range(0,self.num_roads):
             state_vector.append(self.road[i].get_in_lanes_num(self.intersectionID)-1)
@@ -413,14 +421,10 @@ class Intersection:
             #self.env_sim.update_iter(self.iter,avg_wait_time,self.vehicles, action_set[0])
             self.env_sim.lane_conf(state_vector[12:16])
 
-        #  self.dp.plot(plt_vector)
-        #  self.dp.multi_scatter_plot(plt_vector, self.iter, 4)
 
 
         return self.curr_phase, state_vector, reward, done
 
-    # Update the environment with some vehicles in
-    # a random fashion
 
     def update_env(self):  # add vehicles to environment
         if (self.iter < 34000 and self.iter > 25000) or (self.iter < 55000 and self.iter > 45000):
@@ -450,7 +454,13 @@ class Intersection:
             self.road[road_index].add_block(VehicleBlock(int(random_vehicles[2*road_index]),['S']), 'UP')
             self.road[road_index].add_block(VehicleBlock(int(random_vehicles[2*road_index+1]),['R']), 'UP')
 
-    # Calculate total wait time of all roads at the intersection
+    def total_vehicles(self):
+        total = 0
+        for i in range(self.num_roads):
+            total += self.road[i].get_num_vehicles(self.intersectionID, 'R')
+            total += self.road[i].get_num_vehicles(self.intersectionID, 'S')
+        return total
+
     def total_wait_time(self):
         total_time = 0
         min_time = self.road[0].get_wait_time('S', self.intersectionID)
@@ -481,31 +491,29 @@ class Intersection:
         straight_block = False
         left_road = self.roadConnection[roadIndex][2]
         if direction == 'S':
-            if self.num_roads == 3 and roadIndex == 0:
-                outRoadIndex = self.roadConnection[roadIndex][2]
-            else:
-                outRoadIndex = self.roadConnection[roadIndex][0]
+
+            outRoadIndex = self.roadConnection[roadIndex][0]
 
             out_tf = self.road[outRoadIndex].get_outgoing_vehicles(self.intersectionID)
             out_tf_l = self.road[left_road].get_outgoing_vehicles(self.intersectionID)
 
             if out_tf >= 240 and out_tf_l >= 240:
-                print("Both lanes are full ", self.road[outRoadIndex].get_id(), self.road[left_road].get_id())
+                print("IntersectionID: ", self.intersectionID , " Both lanes are full ", self.road[outRoadIndex].get_id(), self.road[left_road].get_id())
                 return 0,0
 
             if out_tf >= 240:
                 straight_block = True
-                print("Output straight lane is full", self.road[outRoadIndex].get_id())
+                print("IntersectionID: ", self.intersectionID ," Output straight lane is full", self.road[outRoadIndex].get_id())
 
             if out_tf_l >= 240:
                 left_block = True
-                print("Output left lane is full", self.road[left_road].get_id())
+                print("IntersectionID: ", self.intersectionID ," Output left lane is full", self.road[left_road].get_id())
 
         else:
             outRoadIndex = self.roadConnection[roadIndex][1]
             out_tf_r = self.road[outRoadIndex].get_outgoing_vehicles(self.intersectionID)
             if out_tf_r >= 240:
-                print("Output right lane is full",  self.road[outRoadIndex].get_id())
+                print("IntersectionID: ", self.intersectionID ," Output right lane is full",  self.road[outRoadIndex].get_id())
                 return 0,0
 
 
@@ -526,15 +534,6 @@ class Intersection:
                                                             self.intersectionID, is_first, straight_block, left_block)
 
         self.road[outRoadIndex].set_outgoing_traffic(total_vehi)
-        '''time, vehicles = self.road[outRoadIndex].set_outgoing_vb(vbs, self.intersectionID)
-
-
-        if vbs_to_left.size != 0:
-            temp_a, temp_b = self.road[left_road].set_outgoing_vb(vbs_to_left, self.intersectionID)
-            #self.abs_time_que.append(time)
-            #self.abs_vehicle_num_que.append(vehicles)
-            time += temp_a
-            vehicles += temp_b'''
 
         if vbs.size != 0:
             self.vehicles_to_transfer.append([vbs,outRoadIndex])
@@ -543,7 +542,6 @@ class Intersection:
 
         # save these data:
             # vbs, vbs_to_left
-
 
 
         return total_wait, total_vehi #, time, vehicles
@@ -596,7 +594,8 @@ class Intersection:
         else:
             return 0
 
-
+    def setIntersectionData(self):
+        self.reporter.setIntersectionData(self.intersectionID,self.reporter_queue)
 
     def enable_reset(self):
         self.disable_reset = False
