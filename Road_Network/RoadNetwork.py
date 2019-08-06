@@ -90,7 +90,7 @@ class RoadNetwork:
 
     def dependencyCheck(self,stepNumber):
 
-        if stepNumber%6 == 0 and stepNumber > 50:
+        if stepNumber%6 == 0 and stepNumber > 32:
             self.dependencyG.assignLoadToNodes(self.roadElementGenerator.roadList)
 
             laneChangeRidList = []
