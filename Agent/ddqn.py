@@ -232,7 +232,7 @@ class DQNAgent:
             self.replay(16)
 
 
-        if self.iter%2 == 0 and self.iter != 0:
+        if self.iter%10 == 0 and self.iter != 0:
             self.copy_model()
 
 

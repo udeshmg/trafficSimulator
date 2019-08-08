@@ -11,14 +11,14 @@ from Road_Elements.Vehicles import VehicleBlock
 from Road_Elements.Road import Road
 from Stat_Reporter.StatReporter import Reporter
 
-alpha = 0.2 # reducing this diverge the results in the case of Multilane conf.
+alpha = 0.6 # reducing this diverge the results in the case of Multilane conf.
 beta = 0.01
 TIME_STEP = 10
 DEBUG = 3
 LANE_CAPACITY = 5
 SIZE = 100
 abs_SIZE = 300
-maxVehicleGaP = 120
+maxVehicleGaP = 240
 checkConsistent = 100
 enable_check = False
 GAP = 50

@@ -103,7 +103,7 @@ class DQNAgent:
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
-    def act(self, state):
+    def act(self, state2, state):
         if np.random.rand() <= self.epsilon:
             if self.debugLvl > 2:
                 print("Agent ID", self.id, " Rondom Action ", self.id)
@@ -114,7 +114,7 @@ class DQNAgent:
             else:
                 return random.randrange(self.action_size)
 
-        act_values = self.model.predict(state)[0]
+        act_values = self.model.predict(state2)[0]
 
 
         if self.laneChange:
@@ -149,7 +149,7 @@ class DQNAgent:
                     target[0][action] = reward + self.gamma * t[max_action]
 
 
-                self.model.fit(state, target, epochs=4, verbose=0)
+                self.model.fit(state, target, epochs=1, verbose=0)
             if self.epsilon > self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
 
@@ -181,9 +181,14 @@ class DQNAgent:
         return action_set
 
     def actOnIntersection(self):
-        self.states = np.insert(self.curr_road_loads, 0, self.curr_phase)
-        self.states = np.reshape(self.states, [1, self.state_size])
-        self.action = self.act(self.states)
+        tempStates = np.insert(self.curr_road_loads, 0, self.curr_phase)
+
+        self.states = np.reshape(tempStates[0:self.num_roads*3+1], [1, self.num_roads*3+1])
+        tempStates = np.reshape(tempStates, [1, self.num_roads*5+1])
+
+
+        print("State: ", self.states)
+        self.action = self.act(self.states, tempStates)
 
         if self.laneChange:
             if self.debugLvl > 2:
@@ -215,9 +220,10 @@ class DQNAgent:
             if self.debugLvl > 2:
                 print("Agent ID", self.id, " Road Config: ", next_road_loads[self.num_roads*2:self.num_roads*3])
 
-        next_states = np.reshape(next_states, [1, self.state_size])
 
+        next_states = np.reshape(next_states[0:self.num_roads*3+1], [1, self.num_roads*3+1])
 
+        print("Next state: ", next_states)
         self.remember(self.states, self.action, reward, next_states, is_done)
 
         self.curr_phase = next_phase
@@ -230,7 +236,7 @@ class DQNAgent:
             self.replay(16)
 
 
-        if self.iter%20 == 0 and self.iter != 0:
+        if self.iter%2 == 0 and self.iter != 0:
             self.copy_model()
 
 

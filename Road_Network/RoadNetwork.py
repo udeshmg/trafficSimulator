@@ -20,10 +20,10 @@ class RoadNetwork:
         self.trafficGenerator = TrafficGenerator()
         self.timeStep = 10
         self.dependencyG = DependencyGraph()
-        self.depth = 2
-        self.threshold = 12
+        self.depth = 3
+        self.threshold = 15
         self.load_th = 0
-        self.recentPaths = 50
+        self.recentPaths = 30
         self.numOfVehiclesPerBlock = 1
         self.autoGenTrafficEnabled = False
 
@@ -69,6 +69,7 @@ class RoadNetwork:
         else:
             for i in self.trafficGenerator.getTrafficData():
                 n = self.osmGraph.getPathFromNodes(i[0],i[1],i[2])
+                print("Traffic Data Added: ", n[0],n[2],i[2])
                 self.generateVehicles(n[0],n[2],i[2], 2)      
 
 
@@ -90,7 +91,7 @@ class RoadNetwork:
 
     def dependencyCheck(self,stepNumber):
 
-        if stepNumber%6 == 0 and stepNumber > 32:
+        if stepNumber%4 == 0 and stepNumber > 32:
             self.dependencyG.assignLoadToNodes(self.roadElementGenerator.roadList)
 
             laneChangeRidList = []
@@ -136,7 +137,7 @@ class RoadNetwork:
                     .change_direction(action, self.roadElementGenerator.roadList[road_changes[j][0]-1].upstream_id)
 
 
-        if stepNumber%30 == 0:
+        if stepNumber%20 == 0:
             self.osmGraph.SDpaths = self.osmGraph.SDpaths[-self.recentPaths:len(self.osmGraph.SDpaths)]
             self.dependencyG.createVariableDAG(self.osmGraph.nxGraph,self.osmGraph.SDpaths)
 

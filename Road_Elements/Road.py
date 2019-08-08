@@ -139,7 +139,7 @@ class Road:
         #print("Vehicle added : RID", self.id, " Vehicle ID ", vb.id)
         if direc == 'DOWN':
             vb.setCurrentRoadDetails(self.id, 'DOWN')
-            if self.get_num_vehicles(self.downstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
+            if True :#self.get_num_vehicles(self.downstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
                 if vb.get_direction() == 'S' or vb.get_direction() == 'L':
                     self.straight_v_list_downstream = np.append(self.straight_v_list_downstream, vb)
                 else:
@@ -147,9 +147,11 @@ class Road:
 
                 if DEBUG > 4:
                     print(" Number of vehicles added : ", self.id, vb.get_num_vehicles(), vb.get_direction())
+
+
         else:
             vb.setCurrentRoadDetails(self.id, 'UP')
-            if self.get_num_vehicles(self.upstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
+            if True: # self.get_num_vehicles(self.upstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
                 if vb.get_direction() == 'S' or vb.get_direction() == 'L':
                     self.straight_v_list = np.append(self.straight_v_list, vb)
                 else:
@@ -157,6 +159,7 @@ class Road:
 
                 if DEBUG > 4:
                     print(" Number of vehicles added : ", self.id, vb.get_num_vehicles(), vb.get_direction())
+
         # else:
         #    self.straight_v_list = np.append(self.straight_v_list, VehicleBlock(40 - self.get_num_vehicles()))
         #    print(" Number of vehicles added (full) : ", self.id, 40 - self.get_num_vehicles())
@@ -695,6 +698,8 @@ class Road:
                         self.straight_v_list_downstream = np.append(self.straight_v_list_downstream,vb[i])
                     elif vb[i].get_direction() == 'R':
                         self.right_Turn_v_list_downstream = np.append(self.right_Turn_v_list_downstream,vb[i])
+                    else:
+                        vb[i].finaliseRoute()
                 else:
                     vb[i].finaliseRoute()
 

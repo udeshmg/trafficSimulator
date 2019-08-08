@@ -1,4 +1,4 @@
-from Agent.ddqn import DQNAgent
+from Agent.ddqn_parallel import DQNAgent
 from Road_Elements.Intersection3d import Intersection
 from Road_Elements.Road import Road
 from Road_Elements.Vehicles import VehicleBlock
@@ -43,13 +43,13 @@ def randomVehicleGenerator(i,numRoads):
 dp = Display()
 reporter = Reporter()
 #create Roads
-numRoads = 3
-numIterations = 18000
+numRoads = 4
+numIterations = 8000
 stepSize = 10
 laneDirChange = True
 isGuided = False
 save = True
-load = True
+load = False
 
 reporter.configure(1,1,numIterations)
 
@@ -63,15 +63,17 @@ for i in range(numRoads):
     intersection.addRoad(roadList[i])
 
 #get number of states
-stateSize, actionSize = rdGenerator.getAgentStateActionSpace(numRoads)
+#stateSize, actionSize = rdGenerator.getAgentStateActionSpace(numRoads)
+
+stateSize, actionSize = numRoads*3+1, numRoads*(3**numRoads)
 agent = DQNAgent(stateSize,actionSize,intersection,numRoads,1,laneDirChange,isGuided)
 agent.debugLvl = 3
 
 if load:
     if laneDirChange:
-        agent.load("DDQN_lane_"+str(numRoads)+"_1")
+        agent.load("DDQN_lane_"+str(numRoads)+"noBound")
     else:
-        agent.load("DDQN_sig_"+str(numRoads)+"_1")
+        agent.load("DDQN_sig_"+str(numRoads)+"noBound")
 
 
 intersection.debugLvl = 3
@@ -123,9 +125,9 @@ for i in range(numIterations):
 
 if save:
     if laneDirChange:
-        agent.save("DDQN_lane_"+str(numRoads)+"_1")
+        agent.save("DDQN_lane_"+str(numRoads)+"noBound")
     else:
-        agent.save("DDQN_sig_"+str(numRoads)+"_1")
+        agent.save("DDQN_sig_"+str(numRoads)+"noBound")
 
 
 reporter.setIntersectionData(1,intersection.reporter_queue)

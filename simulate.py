@@ -8,8 +8,8 @@ rn = RoadNetwork()
 reporter = Reporter()
 
 #coordx, coordy, radius = -73.9224, 40.746, 250
-#coordx, coordy, radius = -73.92, 40.75, 600 # type3
-coordx, coordy, radius = -73.996575, 40.747477, 600
+coordx, coordy, radius = -73.92, 40.75, 600 # type3
+#coordx, coordy, radius = -73.996575, 40.747477, 600
 #coordx, coordy, radius = -73.92, 40.749, 500
 rn.buildGraph(coordx, coordy, radius)
 #rn.buildGraph(-73.93, 40.755, 200)
@@ -23,11 +23,11 @@ rn.roadElementGenerator.isGuided = True
 rn.roadElementGenerator.laneDirChange = True
 rn.roadElementGenerator.preLearned = True
 rn.roadElementGenerator.noAgent = False
-rn.autoGenTrafficEnabled = False
+rn.autoGenTrafficEnabled = True
 
 rn.trafficGenerator.trafficPattern = 1
 
-rn.numOfVehiclesPerBlock = 12
+rn.numOfVehiclesPerBlock = 1
 saveMode = True
 #Time in minutes
 rn.trafficLoader.simulateStartTime = 0
@@ -88,8 +88,13 @@ for i in range(iterations):
     print("Step: ",i, " PID:",pid)
     rn.simulateOneStep(i)
     reporter.currentTime = (i+1)*10
-    if i%6 :
+    if i%2 == 0 :
         rn.addTrafficFromData((i)/6)
+
+    if rn.roadElementGenerator.roadList[11].straight_v_list.size != 0:
+        for j in rn.roadElementGenerator.roadList[11].straight_v_list_downstream:
+            print(j.id)
+
 
 for i in range(dummyCycles):
     print("Step: ", i, " PID:", pid)
@@ -107,9 +112,20 @@ for i in range(len(rn.roadElementGenerator.intersectionList)):
 
 for i in range(len(rn.roadElementGenerator.roadList)):
     rn.roadElementGenerator.roadList[i].setRoadConfigurationData()
+    print(" Road id: ", i+1,
+          rn.roadElementGenerator.roadList[i].get_num_vehicles(rn.roadElementGenerator.roadList[i].upstream_id, 'T')+
+          rn.roadElementGenerator.roadList[i].get_num_vehicles(rn.roadElementGenerator.roadList[i].downstream_id, 'T'),
+          len(rn.roadElementGenerator.roadList[i].vehiclesFromDownstream)+len(rn.roadElementGenerator.roadList[i].vehiclesFromUpstream))
+
+
+for i in range(len(rn.vehicleGenerator.vehicleList)):
+    if not rn.vehicleGenerator.vehicleList[i].routeFinished:
+        rn.vehicleGenerator.vehicleList[i].debugLevel = 3
+        rn.vehicleGenerator.vehicleList[i].step(10)
 
 if saveMode:
     reporter.saveData(file)
+
 
 
 with open(filename, "a") as f:

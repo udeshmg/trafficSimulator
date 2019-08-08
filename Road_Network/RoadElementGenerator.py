@@ -42,15 +42,15 @@ class RoadElementGenerator:
             if self.laneDirChange:
                 for i in range(len(self.agentList)):
                     if self.agentList[i].num_roads == 3:
-                        self.agentList[i].load(Path(string+"/DDQN_lane_3"))
+                        self.agentList[i].load(Path(string+"/DDQN_lane_3_1"))
                     if self.agentList[i].num_roads == 4:
-                        self.agentList[i].load(Path(string + "/DDQN_lane_4"))
+                        self.agentList[i].load(Path(string + "/DDQN_lane_4_1"))
             else:
                 for i in range(len(self.agentList)):
                     if self.agentList[i].num_roads == 3:
-                        self.agentList[i].load(Path(string+"/DDQN_sig_3"))
+                        self.agentList[i].load(Path(string+"/DDQN_sig_3_1"))
                     if self.agentList[i].num_roads == 4:
-                        self.agentList[i].load(Path(string + "/DDQN_sig_4"))
+                        self.agentList[i].load(Path(string + "/DDQN_sig_4_1"))
 
 
 

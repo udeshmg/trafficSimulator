@@ -28,6 +28,7 @@ class VehicleBlock:
         self.turn_direction = np.append(self.turn_direction, 'S')
         self.debugLevel = debugLevel
         self.reporter = Reporter.getInstance()
+        self.routeFinished = False
 
         if self.debugLevel > 2:
             print("Generated id", self.id, " Path ", self.turn_direction)
@@ -102,6 +103,7 @@ class VehicleBlock:
     '''
 
     def finaliseRoute(self):
+        self.routeFinished = True
         self.reporter.addVehicleData([[self.id, self.abs_time, self.freeFlowTime]])
 
     def get_num_vehicles(self):

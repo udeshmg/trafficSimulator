@@ -14,6 +14,7 @@ class VehicleGenerator():
         self.osmG = None # OsmGraph(0,0,0)
         self.vehicleId = 0
         self.numVehiclePerBlock = 1
+        self.vehicleList = []
 
     def getGraph(self, osmG):
         self.osmG = osmG
@@ -25,6 +26,7 @@ class VehicleGenerator():
             vb = VehicleBlock(1, decodedPath, self.vehicleId, debugLvl)
             vb.freeFlowTime = freeFlowTime
             self.vehicleId += 1
+            self.vehicleList.append(vb)
             return vb, (path[0], path[1])
         return None, None
 
