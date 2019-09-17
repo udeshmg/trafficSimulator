@@ -46,5 +46,8 @@ class RoadConnector:
                 for i in vbs:
                     i.finaliseRoute()
 
+    def getStates(self):
+        pass
+
     def setIntersectionData(self):
         pass

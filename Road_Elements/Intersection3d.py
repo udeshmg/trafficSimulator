@@ -149,6 +149,7 @@ class Intersection:
         self.prev_wait_time, tmp = self.total_wait_time()
         vehiclesCount = self.total_vehicles()
         action_set = self.decompose_action(action, self.num_roads)
+        print("Action: ", self.intersectionID, action_set)
         if self.enable_report and self.debugLvl > 2:
             print("Intersection ID: ", self.intersectionID, action_set)
 
@@ -399,13 +400,13 @@ class Intersection:
             if self.laneChange:
                 state_vector.append(int(self.road[i].get_outgoing_vehicles(self.intersectionID)/(self.road[i].num_of_lanes - self.road[i].get_in_lanes_num(self.intersectionID))))
 
-        if self.debugLvl>3:
-            print("Intersection id", self.intersectionID, state_vector)
         for i in range(0,self.num_roads):
             state_vector.append(self.road[i].get_in_lanes_num(self.intersectionID)-1)
 
         for i in range(0,self.num_roads):
             state_vector.append(self.road[i].get_traffic_imbalance(self.intersectionID))
+        if self.debugLvl > 3:
+            print("Intersection id", self.intersectionID, state_vector)
 
 
         #Figure FOUR: Current state

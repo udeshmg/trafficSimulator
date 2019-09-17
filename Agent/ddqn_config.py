@@ -1,16 +1,12 @@
 """Training the agent"""
-
+import numpy as np
 import random
 from collections import deque
-import numpy as np
-np.random.seed(1)
-import tensorflow as tf
-tf.set_random_seed(0)
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
-from keras import backend as K
-K.set_epsilon(1e-03)
+from keras import backend as k
+import tensorflow as tf
 import sys
 
 # q_table = np.zeros([env.observation_space.n, env.action_space.n])
@@ -22,9 +18,9 @@ NEGATIVE_REWARD = 2
 SAVE_N_RESTORE = False
 SAVE = True
 DEBUG = 3
-#config = tf.ConfigProto()
-#config.gpu_options.allow_growth = True
-#session = tf.Session(config=config)
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
 
 def decompose_action(action_val, num_roads):
     action = action_val
@@ -46,7 +42,7 @@ def get_index(phase, roads, step=5):
         index += int((roads[rd] * (step ** (len(roads)-rd-1))))
     return index
 
-class DQNAgent:
+class DQNAgentConfig:
     def __init__(self, state_size, action_size,intersection, num_roads, id=1, lanechange=True, guided=False):
         self.state_size = state_size
         self.action_size = action_size
@@ -80,23 +76,24 @@ class DQNAgent:
 
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
+        random.seed(0)
         model = Sequential()
         model.add(Dense(24, input_dim=self.state_size, activation='tanh'))
         model.add(Dense(24, activation='tanh'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse',
-                    optimizer=Adam(lr=self.learning_rate, epsilon=1e-03))
+                    optimizer=Adam(lr=self.learning_rate))
 
         target_model = Sequential()
         target_model.add(Dense(24, input_dim=self.state_size, activation='tanh'))
         target_model.add(Dense(24, activation='tanh'))
         target_model.add(Dense(self.action_size, activation='linear'))
         target_model.compile(loss='mse',
-                    optimizer=Adam(lr=self.learning_rate, epsilon=1e-03))
+                    optimizer=Adam(lr=self.learning_rate))
 
 
-        #model._make_predict_function()
-        #target_model._make_predict_function()
+        model._make_predict_function()
+        target_model._make_predict_function()
 
 
         return model, target_model
@@ -105,9 +102,10 @@ class DQNAgent:
         self.target_model.set_weights(self.model.get_weights())
 
     def remember(self, state, action, reward, next_state, done):
+        random.seed(self.iter)
         self.memory.append((state, action, reward, next_state, done))
 
-    def act(self, state):
+    def act(self, state2, state):
         if np.random.rand() < self.epsilon:
             if self.debugLvl > 2:
                 print("Agent ID", self.id, " Rondom Action ", self.id)
@@ -118,10 +116,8 @@ class DQNAgent:
             else:
                 return random.randrange(self.action_size)
 
-        #act_values = self.ignore_invalid_actions(self.model.predict(state)[0], state)
-        act_values = self.model.predict(state)[0]
-        #print(act_values)
-        #print("Phase selection", act_values[0], act_values[81],act_values[162],act_values[243])
+        act_values = self.model.predict(state2)[0]
+
 
         if self.laneChange:
             for i in range(len(act_values)):
@@ -145,7 +141,6 @@ class DQNAgent:
         return np.argmax(act_values)  # returns action
 
     def replay(self, batch_size):
-            random.seed(self.iter)
             minibatch = random.sample(self.memory, batch_size)
             for state, action, reward, next_state, done in minibatch:
 
@@ -156,7 +151,7 @@ class DQNAgent:
                     target[0][action] = reward + self.gamma * t[max_action]
 
 
-                self.model.fit(state, target, epochs=1, verbose=0, shuffle=False, batch_size=16)
+                self.model.fit(state, target, epochs=1, verbose=0)
             if self.epsilon > self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
 
@@ -189,9 +184,14 @@ class DQNAgent:
         return action_set
 
     def actOnIntersection(self):
-        self.states = np.insert(self.curr_road_loads, 0, self.curr_phase)
-        self.states = np.reshape(self.states, [1, self.state_size])
-        self.action = self.act(self.states)
+        tempStates = np.insert(self.curr_road_loads, 0, self.curr_phase)
+
+        self.states = np.reshape(tempStates[0:self.num_roads*4+1], [1, self.num_roads*4+1])
+        tempStates = np.reshape(tempStates, [1, self.num_roads*5+1])
+
+
+        #print("State: ", self.states)
+        self.action = self.act(self.states, tempStates)
 
         if self.laneChange:
             if self.debugLvl > 2:
@@ -223,9 +223,10 @@ class DQNAgent:
             if self.debugLvl > 2:
                 print("Agent ID", self.id, " Road Config: ", next_road_loads[self.num_roads*2:self.num_roads*3])
 
-        next_states = np.reshape(next_states, [1, self.state_size])
 
+        next_states = np.reshape(next_states[0:self.num_roads*4+1], [1, self.num_roads*4+1])
 
+        print("Next state: ", next_states)
         self.remember(self.states, self.action, reward, next_states, is_done)
 
         self.curr_phase = next_phase
@@ -238,87 +239,8 @@ class DQNAgent:
             self.replay(16)
 
 
-        if self.iter%10 == 0 and self.iter != 0:
+        if self.iter%2 == 0 and self.iter != 0:
             self.copy_model()
 
 
         self.iter += 1
-
-'''
-DEBUG = 3
-
-phases = 4
-num_roads = 4
-vehicle_step = 5
-actions = phases
-
-
-action = np.zeros(phases)
-
-#  Parameters for Q function
-
-traffic_env = Intersection(id)
-#traffic_env.enable_reset()
-
-# updating values
-curr_phase = 0
-curr_road_loads = np.zeros(shape=num_roads*2+12)
-next_road_loads = np.zeros(shape=num_roads*2+12)
-signal_pattern = np.zeros(shape=(1,100),dtype=np.int)
-moving_avg = 0
-moving_que = deque(maxlen=100)
-dp = Display()
-
-iterations = 25000
-
-state_size = 21
-action_size = 324
-agent = DQNAgent(state_size,action_size)
-
-if SAVE_N_RESTORE:
-    agent.load("weights")
-
-reward_buffer = np.empty(shape=0, dtype=float)
-
-
-
-for i in range(0, iterations):
-    print(i)
-
-    states = np.insert(curr_road_loads, 0, curr_phase)
-    states = np.reshape(states, [1, state_size])
-    action = agent.act(states)
-
-    next_phase, next_road_loads, reward, is_done = traffic_env.step(action)
-    reward_buffer =  np.append(reward_buffer, reward)
-    next_states = np.insert(next_road_loads, 0, next_phase)
-    if DEBUG > 2:
-        print("Next state: ", next_states)
-    next_states = np.reshape(next_states, [1, state_size])
-
-    agent.remember(states, action, reward, next_states, is_done)
-
-    curr_phase = next_phase
-    curr_road_loads = next_road_loads
-
-
-    if i > 50:
-        agent.replay(32)
-
-# moving average **** TODO: Declare a separate function
-
-    if SAVE:
-        agent.save("weights")
-
-    # dp.figure(moving_avg, i)
-    # moving average ****
-if SAVE:
-    agent.save("weights")
-traffic_env.writeTofile('Multilane_2')
-traffic_env.printArrayData()
-dp.single_arr(reward_buffer)
-#dp.colorMap(signal_pattern)
-
-print("Training finished.\n") '''
-
-

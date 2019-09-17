@@ -16,6 +16,10 @@ class VehicleGenerator():
         self.numVehiclePerBlock = 1
         self.vehicleList = []
 
+    def clear(self):
+        self.vehicleId = 0
+        self.vehicleList = []
+
     def getGraph(self, osmG):
         self.osmG = osmG
 

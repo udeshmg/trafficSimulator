@@ -7,8 +7,9 @@ reporter = Reporter()
 #rn.buildGraph(-73.9224, 40.746, 250)
 rn.buildGraph(-73.92, 40.75, 600)
 #rn.buildGraph(-73.996575, 40.747477, 600)
+#rn.buildGraph(-73.995830, 40.744612, 1200)
 #rn.buildGraph(-73.933, 40.758,600)
-#rn.buildGraph(-73.9189, 40.7468, 400)
+#rn.buildGraph(-73.9189, 40.7468, 500)
 #rn.osmGraph.drawGraph(False)
 rn.init()
 rn.createNetwork()
@@ -21,11 +22,14 @@ rn.roadElementGenerator.configureAgents("Tests")
 rn.roadElementGenerator.isGuided = True
 rn.roadElementGenerator.laneDirChange = True
 rn.autoGenTrafficEnabled = False
-rn.trafficGenerator.trafficPattern = 1
+rn.trafficGenerator.trafficPattern = 3
+#rn.osmGraph.drawGraph()
+
+
 rn.trafficLoader.simulateStartTime = 0 #Time in minutes
 
 reporter.configure(len(rn.osmGraph.nxGraph),rn.osmGraph.nxGraph.number_of_edges(), iterations)
-rn.addTrafficFromData(60) #Time in minutes
+#rn.addTrafficFromData(10) #Time in minutes
 print("Last Index Reached: ", rn.trafficLoader.lastIndex)
 print("Last Vehicle ID", rn.vehicleGenerator.vehicleId)
 
@@ -34,11 +38,26 @@ print("OD pairs: ", len(rn.osmGraph.SDpairs))
 print("OD pairs: ", len(rn.osmGraph.SDpaths))
 print("Original pairs", rn.osmGraph.SDpairs)
 rn.osmGraph.filterSDpairs()
-rn.osmGraph.drawPathOnMap(False, rn.autoGenTrafficEnabled)
+#rn.osmGraph.drawPathOnMap(False, rn.autoGenTrafficEnabled)
 print("Filtered pairs",rn.osmGraph.filteredSDpairs)
 #rn.osmGraph.drawPathOnMap()
-rn.osmGraph.drawGraphWithUserTraffic()
+#rn.osmGraph.drawGraphWithUserTraffic()
 
+
+for i in range(20):
+    rn.vehicleGenerator.clear()
+    rn.osmGraph.clear()
+    rn.trafficLoader.clear()
+
+    start = i*5
+    window = 5
+    rn.trafficLoader.simulateStartTime = start
+    rn.addTrafficFromData(window)
+    rn.osmGraph.drawPathOnMap(False, rn.autoGenTrafficEnabled)
+    rn.osmGraph.drawGraphWithUserTraffic(block=False, figName=str(start)+":"+str(window))
+    print("Last Index Reached: ", rn.trafficLoader.lastIndex)
+    print("Last Vehicle ID", rn.vehicleGenerator.vehicleId)
+    #a = input()
 
 '''for i in range(iterations):
     print("Step: ",i)

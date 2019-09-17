@@ -29,7 +29,7 @@ class Reporter():
 
         data = pd.read_csv(Path(string + '/vehicle_data.csv'))
 
-        road = pd.read_csv(Path(string + '/road.csv'))
+        road = pd.read_csv(Path(string + '/road.csv'),header=None)
         self.roadData1 = np.zeros(shape=road.shape)
         self.roadData1 = np.array(road)
         #print(data)
@@ -38,6 +38,28 @@ class Reporter():
         self.vehicleData1 = np.array(data)
         #print(self.vehicleData1)
 
+    def plotTravelTimeShift(self, title='Name'):
+        temp = np.empty(shape=0)
+        for i in range(self.vehicleData1.shape[0]):
+            val = (self.vehicleData1[i][2])/max(1,self.vehicleData1[i][3])
+            #val = (self.vehicleData1[i][3])/max(1,self.vehicleData1[i][2])
+            if self.vehicleData1[i][3] != 0:
+                temp = np.append(temp, val)
+
+        counter = 0
+        for i in temp:
+            if i > 4:
+                counter += 1
+        print("Dev: ", counter/len(temp))
+
+        self.dp.histogram(temp,title)
+
+    def plotVehicleTime(self,color):
+
+        data = self.vehicleData1[self.vehicleData1[:,1].argsort()]
+        index = [i[1] for i in data]
+        time = [i[2] for i in data]
+        self.dp.single_arr(time,edgeclr=color)
 
     def configure(self, nodes,edges,iterations):
         self.nodes = nodes
@@ -134,6 +156,7 @@ class Reporter():
 
         #print(vehicleTime)
         self.dp.single_arr(vehicleTime, 50, edgeclr=color, name=name)
+        return vehicleTime[-1]
 
     def show(self):
         self.dp.show()

@@ -21,15 +21,17 @@ class RoadNetwork:
         self.timeStep = 10
         self.dependencyG = DependencyGraph()
         self.depth = 3
-        self.threshold = 15
+        self.threshold = 12
         self.load_th = 0
-        self.recentPaths = 30
+        self.recentPaths = 20
         self.numOfVehiclesPerBlock = 1
         self.autoGenTrafficEnabled = False
 
-    def buildGraph(self, long, lat, diameter):
+
+
+    def buildGraph(self, long, lat, diameter, osm=True):
         print("Loading data from Open street maps...")
-        self.osmGraph = OsmGraph(long=long, lat=lat, diameter=diameter)
+        self.osmGraph = OsmGraph(long=long, lat=lat, diameter=diameter, osm=osm)
         self.osmGraph.createAdjacenceEdgeAttribute()
         print("Map load complete")
 
@@ -70,7 +72,7 @@ class RoadNetwork:
             for i in self.trafficGenerator.getTrafficData():
                 n = self.osmGraph.getPathFromNodes(i[0],i[1],i[2])
                 print("Traffic Data Added: ", n[0],n[2],i[2])
-                self.generateVehicles(n[0],n[2],i[2], 2)      
+                self.generateVehicles(n[0],n[2],i[2], 2)
 
 
  # source and destination
@@ -86,9 +88,25 @@ class RoadNetwork:
         if self.roadElementGenerator.isGuided:
             self.dependencyCheck(stepNumber)
 
+        if self.roadElementGenerator.selfLaneChange and self.roadElementGenerator.enaleDependencyCheck:
+            self.dependencyCheckRoad(stepNumber)
+
         for i in range(len(self.roadElementGenerator.agentList)):
             self.roadElementGenerator.agentList[i].getOutputData()
 
+    def setRoadconfig(self, val):
+        roadChanges = self.osmGraph.allocateLaneBasedOnLoad()
+        for i in range(len(roadChanges)):
+            if roadChanges[i][1] == 1:
+                self.roadElementGenerator.roadList[roadChanges[i][0]-1].change_direction('IN',
+                                                                                      self.roadElementGenerator.roadList[roadChanges[i][0]-1].upstream_id,
+                                                                                      val)
+            else:
+                self.roadElementGenerator.roadList[roadChanges[i][0] - 1].change_direction('OUT',
+                                                                                            self.roadElementGenerator.roadList[
+                                                                                                roadChanges[i][
+                                                                                                    0] - 1].upstream_id,
+                                                                                            val)
     def dependencyCheck(self,stepNumber):
 
         if stepNumber%4 == 0 and stepNumber > 32:
@@ -138,8 +156,61 @@ class RoadNetwork:
 
 
         if stepNumber%20 == 0:
-            self.osmGraph.SDpaths = self.osmGraph.SDpaths[-self.recentPaths:len(self.osmGraph.SDpaths)]
-            self.dependencyG.createVariableDAG(self.osmGraph.nxGraph,self.osmGraph.SDpaths)
+            #self.osmGraph.SDpaths = self.osmGraph.SDpaths[list(self.recentPaths)]
+            paths = list(self.osmGraph.recentPaths)
+            self.dependencyG.createVariableDAG(self.osmGraph.nxGraph,paths)
+
+    def dependencyCheckRoad(self, stepNumber):
+
+        if stepNumber % 2 == 0 and stepNumber > 10:
+            self.dependencyG.assignLoadToNodes(self.roadElementGenerator.roadList)
+
+            laneChangeRidList = []
+            laneChangeactionList = []
+            laneChangeConvertedactionList = []
+            requestList = []
+            for j in self.roadElementGenerator.roadList:
+                if j.laneChangeRequest:
+                    req = j.laneChangeRequest.pop()
+                    laneChangeRidList.append(req[0])
+                    laneChangeactionList.append(req[1])
+                    if req[1] == 'IN':
+                        laneChangeConvertedactionList.append(1)
+                    elif req[1] == 'OUT':
+                        laneChangeConvertedactionList.append(-1)
+
+            conflicts, road_changes = self.dependencyG.find_dependency(laneChangeRidList,
+                                                                       laneChangeConvertedactionList,
+                                                                       self.depth, self.threshold, self.load_th)
+
+            print("Dependency output: ", conflicts, road_changes)
+
+            print("Start Evaluate: ")
+            for j, k, l in zip(conflicts, laneChangeRidList, laneChangeactionList):
+                if conflicts[j] < self.threshold:  # number of conflicts
+                    print("Allow Change: Road ", k)
+                    self.roadElementGenerator.roadList[k-1].change_direction(l,
+                                                                             self.roadElementGenerator.roadList[k-1].upstream_id,
+                                                                             )
+                    self.roadElementGenerator.roadList[k-1].laneChangeRequest.clear()
+                else:
+                    print("Disable Change: intersection ", k)
+                    self.roadElementGenerator.roadList[k-1].laneChangeRequest.clear()
+                    #self.roadElementGenerator.intersectionList[k - 1].holdChange(j, l)
+
+            for j in range(len(road_changes)):
+                if road_changes[j][1] == 1:
+                    action = 'IN'
+                else:
+                    action = 'OUT'
+                print("Road changed: ", road_changes[j][0], " Action: ", action)
+                out = self.roadElementGenerator.roadList[road_changes[j][0] - 1] \
+                    .change_direction(action,
+                                      self.roadElementGenerator.roadList[road_changes[j][0] - 1].upstream_id)
+
+        if stepNumber % 8 == 0:
+            self.osmGraph.SDpaths = self.osmGraph.SDpaths[-4:len(self.osmGraph.SDpaths)]
+            self.dependencyG.createVariableDAG(self.osmGraph.nxGraph, self.osmGraph.SDpaths)
 
 #rn.generateVehicles(3,2,3)
 #rn.generateVehicles(12,3,3)

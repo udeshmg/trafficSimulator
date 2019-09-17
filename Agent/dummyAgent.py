@@ -12,13 +12,13 @@ class dummyAgent():
         self.iter += 1
 
         if self.iter % 2 == 0:
-            if self.action == self.actionSpace:
+            if self.action == self.actionSpace-1:
                 self.action = 0
             else:
                 self.action += 1
 
-        self.intersection.step(self.action)
+        self.intersection.step(self.action*(3**self.actionSpace))
 
 
     def getOutputData(self):
-        pass
+        self.intersection.getStates()

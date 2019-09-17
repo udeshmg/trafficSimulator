@@ -7,20 +7,30 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 
 ## the data
-N = 4
+N = 3
 
 
 description = 'Average travel time'
-traffic_signals = [248.72, 261.3, 424.04, 566.30]
+'''traffic_signals = [248.72, 261.3, 424.04, 566.30]
 traffic_signalsStd =   [2, 4, 3, 4]
 
 lane_change_noGuide = [251.27, 242.25, 434.33, 436]
 lane_change_noGuideStd =   [2, 4, 3, 4]
 
 lane_change_withGuide = [241.91, 242.25, 274.75, 358.58]
-lane_change_withGuideStd =   [2, 4, 3, 4]
+lane_change_withGuideStd =   [2, 4, 3, 4]'''
 
-file = pd.read_csv("Simulate_Data/networktype4.csv")
+traffic_signals = [248.72, 261.3, 424.04, 566.30]
+traffic_signalsStd =   [0, 0, 0, 0]
+
+lane_change_noGuide = [251.27, 242.25, 434.33, 436]
+lane_change_noGuideStd =   [0, 0, 0, 0]
+
+lane_change_withGuide = [241.91, 242.25, 274.75, 358.58]
+lane_change_withGuideStd =   [0, 0, 0, 0]
+
+
+file = pd.read_csv("Complete_Data/network6/backup/networktype4.csv")
 
 col1 = file['Traffic signals only']
 col2 = file['Lane change system with no guidance']
@@ -50,16 +60,20 @@ rects3 = ax.bar(ind+2*width, col3, width,
 # axes and labels
 ax.set_xlim(-width,len(ind)+width)
 #ax.set_ylim(0,400)
-ax.set_ylabel('time')
-ax.set_title('Parameter:'+description)
-xTickMarks = ['traffic '+str(i) for i in range(1,N+1)]
+ax.set_ylabel('time(min)',fontsize=24)
+ax.set_xlabel('up sampled factor',fontsize=24)
+#ax.set_title('Parameter:'+description)
+xTickMarks = [5,6,7]
 ax.set_xticks(ind+2*width)
 xtickNames = ax.set_xticklabels(xTickMarks)[0:4]
-plt.setp(xtickNames, rotation=45, fontsize=8)
+
+ax.tick_params(axis="y", labelsize=24)
+plt.setp(xtickNames, fontsize=24)
 
 ## add a legend
-ax.legend( (rects1[0], rects2[0], rects3[0]), ('Traffic signals',
-                                                'Lane change system with no guidance',
-                                                'Lane change system with guidance') )
-
+ax.legend( (rects1[0], rects2[0], rects3[0]), ('TS',
+                                                'LD',
+                                                'LD-PDG') )
+plt.gcf().subplots_adjust(bottom=0.2)
+plt.gcf().subplots_adjust(left=0.2)
 plt.show()

@@ -1,4 +1,4 @@
-from Agent.ddqn import DQNAgent
+from Agent.ddqn_config import DQNAgentConfig
 from Road_Elements.Intersection3d import Intersection
 from Road_Elements.Road import Road
 from Road_Elements.Vehicles import VehicleBlock
@@ -11,46 +11,45 @@ from Stat_Reporter.StatReporter import Reporter
 def randomVehicleGenerator(i,numRoads):
     if  i > 6000 and i < 7000:
         random_vehicles = np.array(
-            [np.random.poisson(4, 1)[0], np.random.poisson(7, 1)[0],   # 'S' | 'R'
-             np.random.poisson(7, 1)[0], np.random.poisson(4, 1)[0],
-             np.random.poisson(5, 1)[0], np.random.poisson(4, 1)[0],
+            [np.random.poisson(4, 1)[0], np.random.poisson(5, 1)[0],   # 'S' | 'R'
+             np.random.poisson(7, 1)[0], np.random.poisson(1, 1)[0],
+             np.random.poisson(2, 1)[0], np.random.poisson(4, 1)[0],
              np.random.poisson(7, 1)[0], np.random.poisson(2, 1)[0]])
     elif i > 4000 and i < 8000:
         random_vehicles = np.array(
             [np.random.poisson(1, 1)[0], np.random.poisson(4, 1)[0],   # 'S' | 'R'
-             np.random.poisson(5, 1)[0], np.random.poisson(6, 1)[0],
-             np.random.poisson(7, 1)[0], np.random.poisson(3, 1)[0],
+             np.random.poisson(5, 1)[0], np.random.poisson(4, 1)[0],
+             np.random.poisson(6, 1)[0], np.random.poisson(3, 1)[0],
              np.random.poisson(3, 1)[0], np.random.poisson(4, 1)[0]])
     elif i > 3000:
         random_vehicles = np.array(
-            [np.random.poisson(5, 1)[0], np.random.poisson(3, 1)[0],   # 'S' | 'R'
-             np.random.poisson(6, 1)[0], np.random.poisson(2, 1)[0],
+            [np.random.poisson(1, 1)[0], np.random.poisson(3, 1)[0],   # 'S' | 'R'
+             np.random.poisson(1, 1)[0], np.random.poisson(2, 1)[0],
              np.random.poisson(4, 1)[0], np.random.poisson(3, 1)[0],
              np.random.poisson(3, 1)[0], np.random.poisson(3, 1)[0]])
 
     else:
         random_vehicles = np.array(
-            [np.random.poisson(9, 1)[0], np.random.poisson(4, 1)[0],   # 'S' | 'R'
-             np.random.poisson(2, 1)[0], np.random.poisson(4, 1)[0],
-             np.random.poisson(2, 1)[0], np.random.poisson(1, 1)[0],
-             np.random.poisson(4, 1)[0], np.random.poisson(4, 1)[0]])
+            [np.random.poisson(6, 1)[0], np.random.poisson(3, 1)[0],   # 'S' | 'R'
+             np.random.poisson(1, 1)[0], np.random.poisson(3, 1)[0],
+             np.random.poisson(1, 1)[0], np.random.poisson(1, 1)[0],
+             np.random.poisson(2, 1)[0], np.random.poisson(2, 1)[0]])
 
     random_vehicles = random_vehicles.round()
 
     np.clip(random_vehicles, 0, 40)
 
     return random_vehicles[0:2*numRoads]
-
 dp = Display()
 reporter = Reporter()
 #create Roads
 numRoads = 4
-numIterations = 18000
+numIterations = 9000
 stepSize = 10
-laneDirChange = False
+laneDirChange = True
 isGuided = False
 save = True
-load = True
+load = False
 
 reporter.configure(1,1,numIterations)
 
@@ -64,15 +63,17 @@ for i in range(numRoads):
     intersection.addRoad(roadList[i])
 
 #get number of states
-stateSize, actionSize = rdGenerator.getAgentStateActionSpace(numRoads)
-agent = DQNAgent(stateSize,actionSize,intersection,numRoads,1,laneDirChange,isGuided)
+#stateSize, actionSize = rdGenerator.getAgentStateActionSpace(numRoads)
+
+stateSize, actionSize = numRoads*4+1, numRoads*(3**numRoads)
+agent = DQNAgentConfig(stateSize,actionSize,intersection,numRoads,1,laneDirChange,isGuided)
 agent.debugLvl = 3
 
 if load:
     if laneDirChange:
-        agent.load("DDQN_lane_"+str(numRoads)+"_1")
+        agent.load("DDQN_lane_"+str(numRoads)+"config")
     else:
-        agent.load("DDQN_sig_"+str(numRoads)+"ver2")
+        agent.load("DDQN_sig_"+str(numRoads)+"config")
 
 
 intersection.debugLvl = 3
@@ -90,14 +91,14 @@ for i in range(numIterations):
         k += 2
 
 
-    if numRoads == 3 and i%2 == 0 :
+    if numRoads == 3 and i%1 == 0 :
         roadList[0].add_block(VehicleBlock(int(vehicleVector[(k+0)%6]),['L']),'UP')
         roadList[0].add_block(VehicleBlock(int(vehicleVector[(k+1)%6]),['R']),'UP')
         roadList[1].add_block(VehicleBlock(int(vehicleVector[(k+2)%6]),['S']),'UP')
         roadList[1].add_block(VehicleBlock(int(vehicleVector[(k+3)%6]),['L']),'UP')
         roadList[2].add_block(VehicleBlock(int(vehicleVector[(k+4)%6]),['S']),'UP')
         roadList[2].add_block(VehicleBlock(int(vehicleVector[(k+5)%6]),['R']),'UP')
-    if numRoads == 4 and i%2 == 0 :
+    if numRoads == 4 and i%1 == 0 :
         roadList[0].add_block(VehicleBlock(int(vehicleVector[k%8]), ['S']), 'UP')
         roadList[0].add_block(VehicleBlock(int(vehicleVector[(k+1)%8]), ['R']), 'UP')
 
@@ -124,9 +125,9 @@ for i in range(numIterations):
 
 if save:
     if laneDirChange:
-        agent.save("DDQN_lane_"+str(numRoads)+"_1")
+        agent.save("DDQN_lane_"+str(numRoads)+"config")
     else:
-        agent.save("DDQN_sig_"+str(numRoads)+"ver2")
+        agent.save("DDQN_sig_"+str(numRoads)+"config")
 
 
 reporter.setIntersectionData(1,intersection.reporter_queue)

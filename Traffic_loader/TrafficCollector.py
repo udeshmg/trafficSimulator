@@ -11,6 +11,12 @@ class TrafficCollector:
         self.numOfVehicles = 0
         self.simulateStartTime = 0
 
+    def clear(self):
+        self.lastTimeRead = 0
+        self.lastIndex = 0
+        self.numOfVehicles = 0
+        self.simulateStartTime = 0
+
     def printData(self):
         print(self.vehicleData.iloc[[1], [0]])
 

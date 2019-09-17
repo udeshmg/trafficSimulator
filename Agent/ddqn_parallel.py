@@ -1,12 +1,17 @@
 """Training the agent"""
-import numpy as np
+
 import random
 from collections import deque
+import numpy as np
+np.random.seed(1)
+import tensorflow as tf
+tf.set_random_seed(0)
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
-from keras import backend as k
-import tensorflow as tf
+from keras.optimizers import RMSprop
+from keras import backend as K
+K.set_epsilon(1e-03)
 import sys
 
 # q_table = np.zeros([env.observation_space.n, env.action_space.n])
@@ -14,13 +19,14 @@ import sys
 # implement a queue table here for a single intersection
 
 
+
 NEGATIVE_REWARD = 2
 SAVE_N_RESTORE = False
 SAVE = True
 DEBUG = 3
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-session = tf.Session(config=config)
+#config = tf.ConfigProto()
+#config.gpu_options.allow_growth = True
+#session = tf.Session(config=config)
 
 def decompose_action(action_val, num_roads):
     action = action_val
@@ -42,14 +48,14 @@ def get_index(phase, roads, step=5):
         index += int((roads[rd] * (step ** (len(roads)-rd-1))))
     return index
 
-class DQNAgent:
+class DQNAgentNoBound:
     def __init__(self, state_size, action_size,intersection, num_roads, id=1, lanechange=True, guided=False):
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=100)
         self.gamma = 0.75    # discount rate
         self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.01
+        self.epsilon_min = 0
         self.epsilon_decay = 0.99 #0.995
         self.learning_rate = 0.001 #0.001
 
@@ -57,7 +63,7 @@ class DQNAgent:
         self.iter = 0
         self.intersection = intersection
         self.num_roads = num_roads
-        self.debugLvl = 2
+        self.debugLvl = 3
 
         self.guided = guided
 
@@ -72,28 +78,32 @@ class DQNAgent:
         self.states = np.zeros(shape=(1, self.state_size))
         self.action = 0
         self.id = id
+        self.restrictLaneChange = False
 
 
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
+        #random.seed(0)
+        #np.random.seed(0)
+        #tf.set_random_seed(0)
         model = Sequential()
         model.add(Dense(24, input_dim=self.state_size, activation='tanh'))
         model.add(Dense(24, activation='tanh'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse',
-                    optimizer=Adam(lr=self.learning_rate))
+                    optimizer=Adam(lr=self.learning_rate, epsilon=1e-03))
 
         target_model = Sequential()
         target_model.add(Dense(24, input_dim=self.state_size, activation='tanh'))
         target_model.add(Dense(24, activation='tanh'))
         target_model.add(Dense(self.action_size, activation='linear'))
         target_model.compile(loss='mse',
-                    optimizer=Adam(lr=self.learning_rate))
+                    optimizer=Adam(lr=self.learning_rate, epsilon=1e-03))
 
 
-        model._make_predict_function()
-        target_model._make_predict_function()
-
+        #model._make_predict_function()
+        #target_model._make_predict_function()
+        #
 
         return model, target_model
 
@@ -104,7 +114,10 @@ class DQNAgent:
         self.memory.append((state, action, reward, next_state, done))
 
     def act(self, state2, state):
-        if np.random.rand() <= self.epsilon:
+        #random.seed(self.iter)
+        #np.random.seed(self.iter)
+
+        if np.random.rand() < self.epsilon:
             if self.debugLvl > 2:
                 print("Agent ID", self.id, " Rondom Action ", self.id)
 
@@ -121,8 +134,8 @@ class DQNAgent:
             for i in range(len(act_values)):
                 out = decompose_action(i,self.num_roads)
 
-                imb_index = self.num_roads*4
-                conf_index = self.num_roads*3
+                imb_index = self.num_roads*4+1
+                conf_index = self.num_roads*3+1
 
                 for j in range(len(out)-1):
                     if (out[j+1] != 0 and state[0][imb_index+j] == 0) or \
@@ -136,10 +149,21 @@ class DQNAgent:
                         print("Agent ID", self.id, "Allowed the change")
                         act_values[i]  += 100
 
-        return np.argmax(act_values)  # returns action
+                if self.restrictLaneChange:
+                    if i%(3**self.num_roads) != 0:
+                        act_values[i] -= 100
+
+
+        #print("Actvalues: ", act_values[0], act_values[81], act_values[81*2], act_values[81*3])
+        return  np.argmax(act_values) # returns action
 
     def replay(self, batch_size):
+
+            random.seed(self.iter)
+            #np.random.seed(self.iter)
+            #tf.set_random_seed(self.iter)
             minibatch = random.sample(self.memory, batch_size)
+
             for state, action, reward, next_state, done in minibatch:
 
                 target = self.model.predict(state)
@@ -149,18 +173,19 @@ class DQNAgent:
                     target[0][action] = reward + self.gamma * t[max_action]
 
 
-                self.model.fit(state, target, epochs=1, verbose=0)
+                self.model.fit(state, target, epochs=1, verbose=0, shuffle=False, batch_size=16)
             if self.epsilon > self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
 
 
     def load(self, name):
             if self.laneChange and self.guided:
-                self.epsilon = 0.2
+                self.epsilon = 0
             else:
-                self.epsilon = 0.2
+                self.epsilon = 0
             print("Agent: ", self.id, " Weights: ",name)
             self.model.load_weights(name)
+            self.target_model.load_weights(name)
 
     def save(self, name):
         self.model.save_weights(name)
@@ -187,7 +212,7 @@ class DQNAgent:
         tempStates = np.reshape(tempStates, [1, self.num_roads*5+1])
 
 
-        print("State: ", self.states)
+        #print("State: ", self.states)
         self.action = self.act(self.states, tempStates)
 
         if self.laneChange:

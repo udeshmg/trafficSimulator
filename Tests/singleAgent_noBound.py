@@ -1,4 +1,4 @@
-from Agent.ddqn_parallel import DQNAgent
+from Agent.ddqn_parallel import DQNAgentNoBound
 from Road_Elements.Intersection3d import Intersection
 from Road_Elements.Road import Road
 from Road_Elements.Vehicles import VehicleBlock
@@ -8,8 +8,43 @@ from GUI.Display import Display
 from Stat_Reporter.StatReporter import Reporter
 
 
+
+def VehicleGenerator(i,numRoads):
+    if  i > 6000 and i < 7000:
+        random_vehicles = np.array(
+            [4, 5,    # 'S' | 'R'
+             7, 1,
+             2, 4,
+             7, 2] )
+    elif i > 1000 and i < 8000:
+        random_vehicles = np.array(
+            [1, 4,   # 'S' | 'R'
+             5, 4,
+             6, 3,
+             3, 4])
+    elif i > 500:
+        random_vehicles = np.array(
+            [1,3,   # 'S' | 'R'
+             1,2,
+             4,3,
+             3,3])
+
+    else:
+        random_vehicles = np.array(
+            [6, 3,   # 'S' | 'R'
+             1, 3,
+             1, 1,
+             2, 2])
+
+    random_vehicles = random_vehicles.round()
+
+    #np.clip(random_vehicles, 0, 40)
+    return random_vehicles[0:2*numRoads]
+
+
+
 def randomVehicleGenerator(i,numRoads):
-    '''if  i > 6000 and i < 7000:
+    if  i > 6000 and i < 7000:
         random_vehicles = np.array(
             [np.random.poisson(4, 1)[0], np.random.poisson(5, 1)[0],   # 'S' | 'R'
              np.random.poisson(7, 1)[0], np.random.poisson(1, 1)[0],
@@ -28,8 +63,8 @@ def randomVehicleGenerator(i,numRoads):
              np.random.poisson(4, 1)[0], np.random.poisson(3, 1)[0],
              np.random.poisson(3, 1)[0], np.random.poisson(3, 1)[0]])
 
-    else:'''
-    random_vehicles = np.array(
+    else:
+        random_vehicles = np.array(
             [np.random.poisson(6, 1)[0], np.random.poisson(3, 1)[0],   # 'S' | 'R'
              np.random.poisson(1, 1)[0], np.random.poisson(3, 1)[0],
              np.random.poisson(1, 1)[0], np.random.poisson(1, 1)[0],
@@ -44,12 +79,12 @@ dp = Display()
 reporter = Reporter()
 #create Roads
 numRoads = 4
-numIterations = 8000
+numIterations = 1200
 stepSize = 10
 laneDirChange = True
 isGuided = False
-save = True
-load = False
+save = False
+load = True
 
 reporter.configure(1,1,numIterations)
 
@@ -66,14 +101,14 @@ for i in range(numRoads):
 #stateSize, actionSize = rdGenerator.getAgentStateActionSpace(numRoads)
 
 stateSize, actionSize = numRoads*3+1, numRoads*(3**numRoads)
-agent = DQNAgent(stateSize,actionSize,intersection,numRoads,1,laneDirChange,isGuided)
+agent = DQNAgentNoBound(stateSize,actionSize,intersection,numRoads,1,laneDirChange,isGuided)
 agent.debugLvl = 3
 
 if load:
     if laneDirChange:
         agent.load("DDQN_lane_"+str(numRoads)+"noBound")
     else:
-        agent.load("DDQN_sig_"+str(numRoads)+"noBound")
+        agent.load("DDQN_sig_"+str(numRoads)+"test")
 
 
 intersection.debugLvl = 3
@@ -85,20 +120,20 @@ for i in range(numIterations):
     for j in range(len(roadList)):
         roadList[j].step(10)
 
-    vehicleVector = randomVehicleGenerator(i%9000,numRoads)
+    vehicleVector = VehicleGenerator(i%9000,numRoads)
 
     if i % 9000 == 0:
         k += 2
 
 
-    if numRoads == 3 and i%1 == 0 :
+    if numRoads == 3 and i%2 == 0 :
         roadList[0].add_block(VehicleBlock(int(vehicleVector[(k+0)%6]),['L']),'UP')
         roadList[0].add_block(VehicleBlock(int(vehicleVector[(k+1)%6]),['R']),'UP')
         roadList[1].add_block(VehicleBlock(int(vehicleVector[(k+2)%6]),['S']),'UP')
         roadList[1].add_block(VehicleBlock(int(vehicleVector[(k+3)%6]),['L']),'UP')
         roadList[2].add_block(VehicleBlock(int(vehicleVector[(k+4)%6]),['S']),'UP')
         roadList[2].add_block(VehicleBlock(int(vehicleVector[(k+5)%6]),['R']),'UP')
-    if numRoads == 4 and i%1 == 0 :
+    if numRoads == 4 and i%2 == 0 :
         roadList[0].add_block(VehicleBlock(int(vehicleVector[k%8]), ['S']), 'UP')
         roadList[0].add_block(VehicleBlock(int(vehicleVector[(k+1)%8]), ['R']), 'UP')
 
@@ -125,9 +160,9 @@ for i in range(numIterations):
 
 if save:
     if laneDirChange:
-        agent.save("DDQN_lane_"+str(numRoads)+"noBound")
+        agent.save("DDQN_lane_"+str(numRoads)+"test")
     else:
-        agent.save("DDQN_sig_"+str(numRoads)+"noBound")
+        agent.save("DDQN_sig_"+str(numRoads)+"test")
 
 
 reporter.setIntersectionData(1,intersection.reporter_queue)

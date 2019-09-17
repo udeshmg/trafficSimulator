@@ -51,6 +51,11 @@ class Display:
     def single_arr(arr, figure_num=6, edgeclr='b', name='Add the title name'):
         plt.figure(figure_num)
         plt.title(name)
+        #plt.xlim(400,800)
+        #plt.ylim(100,500)
+        plt.xlabel('time steps')
+        plt.ylabel('Time(s)')
+        #plt.legend('Guided lane change')
         i = [i for i in range(len(arr))]
         plt.scatter(i, arr, edgecolors=edgeclr, c=None, s=1)
 
@@ -93,9 +98,37 @@ class Display:
     @staticmethod
     def colorMap(array,figNum,name='config'):
         plt.figure(figNum)
-        plt.ylabel(name)
+        plt.ylabel('Road ID')
+        plt.xlabel('Time step')
         plt.imshow(array, interpolation="nearest", origin="upper",aspect='auto')
         plt.colorbar()
+
+    @staticmethod
+    def histogram(arr,title):
+        plt.figure(12)
+        plt.ylim(0,1500)
+        #plt.title(title)
+        plt.hist(arr, color='blue', edgecolor='black', bins=[i/10 for i in range(1,150)])
+        plt.xlabel('deviation from free flow travel time')
+        plt.ylabel('number of vehicles(=frequency)')
+
+    @staticmethod
+    def perVehiclePlot(arr,index,title):
+        plt.figure(14)
+        plt.ylim(0,500)
+        plt.title(title)
+        plt.hist(arr, color='blue', edgecolor='black', bins=index)
+        plt.xlabel('vehicle ID')
+        plt.ylabel('Travel time')
+
+    @staticmethod
+    def plotwithVar(x, y, var, title):
+        plt.figure(15)
+        plt.ylim(300, max(y) + max(var) + 5)
+        plt.errorbar(x, y, var, marker='^')
+        plt.ylabel('Average travel time')
+        plt.xlabel('Time steps to trigger traffic imbalance')
+        plt.show()
 
 
 

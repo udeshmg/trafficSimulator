@@ -19,6 +19,7 @@ class Road:
         self.straight_road = None
         self.right_road = None
         self.outgoing_traffic = 0 # modify here
+        self.imbalanceCounter = 30
 
         self.straight_v_list_downstream = np.empty(shape=0, dtype=VehicleBlock)  # vehicles turning left and straight
         self.right_Turn_v_list_downstream = np.empty(shape=0, dtype=VehicleBlock)  # vehicles turning right
@@ -39,6 +40,9 @@ class Road:
         self.roadConf = np.empty(shape=0,dtype=int)
 
         self.reporter = Reporter.getInstance()
+        self.selfLaneChange = False
+        self.laneChangeRequest = []
+        self.enableDependencyCheck = False
 
 
         # Init Lanes
@@ -103,7 +107,7 @@ class Road:
                             if depth != 0:
                                 print("Increased by two: ", self.id)
                                 self.lanes[i+1].change_direction('IN')
-                                self.direc_change_counter = int(1.5 * self.checkConsistent)
+                                self.direc_change_counter = int(2 * self.checkConsistent)
                             self.is_in_upstream_change = True
                             self.is_direc_changing = True
 
@@ -119,7 +123,7 @@ class Road:
                             if depth != 0:
                                 print("Increased by two: ", self.id)
                                 self.lanes[i-2].change_direction('OUT')
-                                self.direc_change_counter = int(1.5 * self.checkConsistent)
+                                self.direc_change_counter = int(2 * self.checkConsistent)
                             self.is_out_upstream_change = False
                             self.is_direc_changing = True
 
@@ -139,7 +143,7 @@ class Road:
         #print("Vehicle added : RID", self.id, " Vehicle ID ", vb.id)
         if direc == 'DOWN':
             vb.setCurrentRoadDetails(self.id, 'DOWN')
-            if True :#self.get_num_vehicles(self.downstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
+            if True: #self.get_num_vehicles(self.downstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
                 if vb.get_direction() == 'S' or vb.get_direction() == 'L':
                     self.straight_v_list_downstream = np.append(self.straight_v_list_downstream, vb)
                 else:
@@ -151,7 +155,7 @@ class Road:
 
         else:
             vb.setCurrentRoadDetails(self.id, 'UP')
-            if True: # self.get_num_vehicles(self.upstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
+            if True: #self.get_num_vehicles(self.upstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
                 if vb.get_direction() == 'S' or vb.get_direction() == 'L':
                     self.straight_v_list = np.append(self.straight_v_list, vb)
                 else:
@@ -189,18 +193,18 @@ class Road:
             if self.is_in_upstream_change:
                 if id == self.upstream_id:
                     remain_cap = self.capacity(self.upstream_id, 'IN') - self.lane_capacity
-                    print(" Upstream:", self.id, " Input increasing: ", remain_cap)
+                    print(" Upstream:", self.id, " Input increasing: ", remain_cap, " Counter: ", self.direc_change_counter)
                 else:
                     remain_cap = self.capacity(self.downstream_id, 'IN') * 0.5
-                    print(" Downstream:", self.id, "Output decreasing: ", remain_cap)
+                    print(" Downstream:", self.id, "Output decreasing: ", remain_cap, " Counter: ", self.direc_change_counter)
 
             elif self.is_out_upstream_change:
                 if id == self.downstream_id:
                     remain_cap = self.capacity(self.downstream_id, 'IN') - self.lane_capacity
-                    print(" Downstream:", self.id, " Input increasing: ", remain_cap)
+                    print(" Downstream:", self.id, " Input increasing: ", remain_cap, " Counter: ", self.direc_change_counter)
                 else:
                     remain_cap = self.capacity(self.upstream_id, 'IN') * 0.5
-                    print(" Upstream:", self.id, " Output increasing: ", remain_cap)
+                    print(" Upstream:", self.id, " Output increasing: ", remain_cap, " Counter: ", self.direc_change_counter)
             remain_cap = int(remain_cap)
 
         if not is_first:
@@ -582,7 +586,23 @@ class Road:
         # print("Imbalance counter", self.id, self.trafficImbalance_counter)
 
         self.get_traffic_details()
-        self.roadConf = np.append(self.roadConf, (self.get_in_lanes_num(self.upstream_id)))
+        self.roadConf = np.append(self.roadConf, self.get_in_lanes_num(self.upstream_id))
+
+        if self.selfLaneChange:
+            if self.get_traffic_imbalance(self.upstream_id) == 1:
+                if self.enableDependencyCheck:
+                    if not self.laneChangeRequest:
+                        if self.get_in_lanes_num(self.upstream_id) != 2:
+                            self.laneChangeRequest.append([self.id, 'OUT'])
+                else:
+                    self.change_direction('OUT', self.upstream_id)
+            if self.get_traffic_imbalance(self.upstream_id) == 2:
+                if self.enableDependencyCheck:
+                    if not self.laneChangeRequest:
+                        if self.get_in_lanes_num(self.upstream_id) != 4:
+                            self.laneChangeRequest.append([self.id, 'IN'])
+                else:
+                    self.change_direction('IN', self.upstream_id)
 
     '''
         Capacity of the Road in one direction 
@@ -747,12 +767,13 @@ class Road:
         self.right_road = road
 
     def get_traffic_imbalance(self, id):
-        if self.trafficImbalance_counter >= 30:
+        #print("Imbalance: ", self.imbalanceCounter)
+        if self.trafficImbalance_counter >= self.imbalanceCounter:
             if id == self.upstream_id:
                 return 1  # outgoing traffic high
             else:
                 return 2
-        elif self.trafficImbalance_counter <= -30:
+        elif self.trafficImbalance_counter <= -self.imbalanceCounter:
             if id == self.upstream_id:
                 return 2
             else:

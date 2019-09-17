@@ -2,18 +2,17 @@ from Road_Network.RoadNetwork import RoadNetwork
 from Stat_Reporter.StatReporter import Reporter
 import os
 
-iterations = 361
-dummyCycles = 120
+iterations = 800
+dummyCycles = 0
 rn = RoadNetwork()
 reporter = Reporter()
 
 #coordx, coordy, radius = -73.9224, 40.746, 350
-
 coordx, coordy, radius = -73.92, 40.75, 600 # type3
 #coordx, coordy, radius =  -73.995830, 40.744612, 600
 #coordx, coordy, radius = -73.996575, 40.747477, 600
 #coordx, coordy, radius = -73.92, 40.749, 500
-rn.buildGraph(coordx, coordy, radius)
+rn.buildGraph(coordx, coordy, radius, False)
 #rn.buildGraph(-73.93, 40.755, 200)
 #rn.buildGraph(-73.9189, 40.7468, 400)
 
@@ -21,15 +20,18 @@ rn.buildGraph(coordx, coordy, radius)
 #rn.osmGraph.drawGraph(True, 'time to travel')
 
 #### ---- configuration phase --------###
-rn.roadElementGenerator.isGuided = True
+rn.roadElementGenerator.isGuided = False
 rn.roadElementGenerator.laneDirChange = True
 rn.roadElementGenerator.preLearned = True
 rn.roadElementGenerator.noAgent = False
-rn.autoGenTrafficEnabled = False
+rn.autoGenTrafficEnabled = True
 rn.roadElementGenerator.isNoBound = True
-rn.roadElementGenerator.noLaneChange = False
+rn.roadElementGenerator.selfLaneChange = False
+rn.roadElementGenerator.enaleDependencyCheck = False
+rn.roadElementGenerator.noLaneChange = True
+manaulchange = True
 
-rn.trafficGenerator.trafficPattern = 3
+rn.trafficGenerator.trafficPattern = 8
 
 rn.numOfVehiclesPerBlock = 7
 saveMode = True
@@ -39,25 +41,32 @@ rn.trafficLoader.simulateStartTime = 0
 
 imb = 30
 cost = 12
-d = 3
-length = 5
-#location = "Complete_Data/network5/"
-location = "Results/Imbalance Factor/"+str(imb)+"/"
+location = "Simulate_Data_small grid/temp/"
+#location = "Results/cost/"+str(cost)+"/"
 #location = "temp/"
-
-rn.depth = d
-rn.dependencyG.len = length
 if rn.roadElementGenerator.noAgent:
-    file = "noAgent1"
+    if rn.roadElementGenerator.selfLaneChange:
+        if rn.roadElementGenerator.enaleDependencyCheck:
+            file = "noAgent3"
+        else:
+            file = "noAgent2"
+    else:
+        file = "noAgent1"
     string = "No agent"
 elif rn.roadElementGenerator.laneDirChange:
     if rn.roadElementGenerator.isGuided:
         file = "laneChange2"+str(rn.numOfVehiclesPerBlock)
         string = "Lane change: Guided"
+
     elif rn.roadElementGenerator.noLaneChange:
-        file = "signalOnly1" + str(rn.numOfVehiclesPerBlock)
-        string = "Signal only"
+        if manaulchange:
+            file = "manual1" + str(rn.numOfVehiclesPerBlock)
+            string = "manual"
+        else:
+            file = "signalOnly1" + str(rn.numOfVehiclesPerBlock)
+            string = "Signal only"
     else:
+
         file = "noGuide1"+str(rn.numOfVehiclesPerBlock)
         string = "Lane change: no Guide"
 else:
@@ -68,7 +77,6 @@ rn.init()
 rn.roadElementGenerator.timeToLaneShift = cost
 rn.roadElementGenerator.imbalance = imb
 rn.createNetwork()
-
 
 filename = location+file+"/config.txt"
 os.makedirs(os.path.dirname(filename), exist_ok=True)
@@ -89,8 +97,6 @@ with open(filename, "w") as f:
     f.write("Aggressiveness: {}".format(rn.roadElementGenerator.imbalance))
 
     f.write("Running...\n")
-
-
 #network
 
 #Agents
@@ -108,17 +114,34 @@ reporter.configure(len(rn.osmGraph.nxGraph), len(rn.roadElementGenerator.roadLis
 #rn.osmGraph.filterSDpairs()
 #print("Filtered pairs",rn.osmGraph.filteredSDpairs)
 #rn.osmGraph.drawGraphWithUserTraffic()
-
+gen = 3
 for i in range(iterations):
     print("Step: ",i, " PID:",pid)
     rn.simulateOneStep(i)
     reporter.currentTime = (i+1)*10
-    if (i%6) == 0:
+    if (i%gen) == 0 and (i < 390 or i > 410):
         rn.addTrafficFromData((i)/6)
+        '''rn.osmGraph.drawPathOnMap(False, rn.autoGenTrafficEnabled, dir='both')
+        rn.osmGraph.drawGraphWithUserTraffic(figName='both')
 
-    if i == 180:
-        rn.trafficGenerator.trafficPattern = 3
+        rn.dependencyG.createVariableDAG(rn.osmGraph.nxGraph, rn.osmGraph.SDpaths)
+        rn.dependencyG.drawGraph()'''
 
+    if (i == 2 or i == 430) and manaulchange:
+        rn.setRoadconfig(0 if i == 2 else 1)
+    '''if i == 50 or i == 450:
+        rn.osmGraph.drawPathOnMap(False, rn.autoGenTrafficEnabled)
+        rn.osmGraph.drawGraphWithUserTraffic()
+        rn.dependencyG.createVariableDAG(rn.osmGraph.nxGraph, rn.osmGraph.SDpaths[-4:len(rn.osmGraph.SDpaths)])
+        rn.dependencyG.drawGraph()'''
+
+    if i == 400:
+        rn.trafficGenerator.trafficPattern = 7
+        gen = 3
+
+
+    #rn.osmGraph.drawPathOnMap(False, rn.autoGenTrafficEnabled)
+    #rn.osmGraph.drawGraphWithUserTraffic()
     #rn.dependencyG.createVariableDAG(rn.osmGraph.nxGraph, rn.osmGraph.SDpaths)
     #rn.dependencyG.drawGraph()
 
