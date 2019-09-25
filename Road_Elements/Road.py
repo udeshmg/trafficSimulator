@@ -20,6 +20,7 @@ class Road:
         self.right_road = None
         self.outgoing_traffic = 0 # modify here
         self.imbalanceCounter = 30
+        self.limitVehicles = False
 
         self.straight_v_list_downstream = np.empty(shape=0, dtype=VehicleBlock)  # vehicles turning left and straight
         self.right_Turn_v_list_downstream = np.empty(shape=0, dtype=VehicleBlock)  # vehicles turning right
@@ -143,7 +144,8 @@ class Road:
         #print("Vehicle added : RID", self.id, " Vehicle ID ", vb.id)
         if direc == 'DOWN':
             vb.setCurrentRoadDetails(self.id, 'DOWN')
-            if True: #self.get_num_vehicles(self.downstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
+
+            if (not self.limitVehicles) or self.get_num_vehicles(self.downstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
                 if vb.get_direction() == 'S' or vb.get_direction() == 'L':
                     self.straight_v_list_downstream = np.append(self.straight_v_list_downstream, vb)
                 else:
@@ -155,7 +157,7 @@ class Road:
 
         else:
             vb.setCurrentRoadDetails(self.id, 'UP')
-            if True: #self.get_num_vehicles(self.upstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
+            if (not self.limitVehicles) or self.get_num_vehicles(self.upstream_id, vb.get_direction()) + vb.get_num_vehicles() <= 120:
                 if vb.get_direction() == 'S' or vb.get_direction() == 'L':
                     self.straight_v_list = np.append(self.straight_v_list, vb)
                 else:

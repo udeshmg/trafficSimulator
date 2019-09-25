@@ -29,6 +29,7 @@ class RoadNetwork:
 
 
 
+
     def buildGraph(self, long, lat, diameter, osm=True):
         print("Loading data from Open street maps...")
         self.osmGraph = OsmGraph(long=long, lat=lat, diameter=diameter, osm=osm)
@@ -109,7 +110,7 @@ class RoadNetwork:
                                                                                             val)
     def dependencyCheck(self,stepNumber):
 
-        if stepNumber%4 == 0 and stepNumber > 32:
+        if stepNumber%2 == 0 and stepNumber > 32:
             self.dependencyG.assignLoadToNodes(self.roadElementGenerator.roadList)
 
             laneChangeRidList = []
@@ -209,7 +210,7 @@ class RoadNetwork:
                                       self.roadElementGenerator.roadList[road_changes[j][0] - 1].upstream_id)
 
         if stepNumber % 8 == 0:
-            self.osmGraph.SDpaths = self.osmGraph.SDpaths[-4:len(self.osmGraph.SDpaths)]
+            self.osmGraph.SDpaths = self.osmGraph.SDpaths[-20:len(self.osmGraph.SDpaths)]
             self.dependencyG.createVariableDAG(self.osmGraph.nxGraph, self.osmGraph.SDpaths)
 
 #rn.generateVehicles(3,2,3)

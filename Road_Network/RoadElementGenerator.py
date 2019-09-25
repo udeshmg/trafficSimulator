@@ -28,6 +28,7 @@ class RoadElementGenerator:
         self.noLaneChange = False
         self.timeToLaneShift = 12
         self.imbalance = 30
+        self.limitVehicles = False
 
         self.selfLaneChange = False
         self.enaleDependencyCheck = False
@@ -94,6 +95,7 @@ class RoadElementGenerator:
             self.roadList[-1].checkConsistent = self.timeToLaneShift
             self.roadList[-1].selfLaneChange = self.selfLaneChange
             self.roadList[-1].enableDependencyCheck = self.enaleDependencyCheck
+            self.roadList[-1].limitVehicles = self.limitVehicles
 
             #print("Road: UP: ",self.roadList[-1].id, self.roadList[-1].upstream_id, self.roadList[-1].downstream_id)
 

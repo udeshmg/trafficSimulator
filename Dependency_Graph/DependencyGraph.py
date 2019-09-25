@@ -78,6 +78,7 @@ class DependencyGraph():
             print(startNodelist)
             self.diG.nodes[startNodelist[i]]['list'] = [[startNodelist[i], depth, actionList[i], conflict]]
             self.diG.nodes[startNodelist[i]]['change'] = actionList[i]
+            self.diG.nodes[startNodelist[i]]['action'] = actionList[i]
             queue_lvl2.append([])
             queue_lvl1.append([startNodelist[i]])
             conflict_counter[startNodelist[i]] = 0
@@ -110,10 +111,10 @@ class DependencyGraph():
                                                          self.diG.nodes[currentNode]['configuration'],
                                                          increase_action, decrease_action,
                                                          self.diG.nodes[currentNode]['load'], load_th)
-                        if action != 0:
+                        '''if action != 0:
                             if not currentNode in startNodelist:
                                 print("Additional change", currentNode, action)
-                                additional_changes.append([currentNode, action])
+                                additional_changes.append([currentNode, action])'''
 
                         self.diG.nodes[currentNode]['action'] = action
                         self.diG.nodes[currentNode]['increase'] = inc
@@ -165,7 +166,7 @@ class DependencyGraph():
                 print("### end iteration of ", k)
             depth -= 1
 
-        '''for node in self.diG.nodes():
+        for node in self.diG.nodes():
             increase_action = 0
             decrease_action = 0
             for i in range(len(self.diG.nodes[node]['list'])):
@@ -188,7 +189,7 @@ class DependencyGraph():
                     if not node in startNodelist:
                         print("Additional change", node, action)
                         additional_changes.append([node, action])
-        print("Conflict Counter", conflict_counter)'''
+        print("Conflict Counter", conflict_counter)
         return conflict_counter, additional_changes
 
     @staticmethod

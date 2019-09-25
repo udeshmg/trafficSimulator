@@ -103,9 +103,6 @@ class OsmGraph():
             weightedG[u][v]['edgeId'] = edgeCounter
             weightedG[u][v]['path'] = 0
             weightedG[u][v]['time to travel'] = 21
-            weightedG[u][v]['up'] = 0
-            weightedG[u][v]['down'] = 0
-
 
             edgeCounter += 1
 
@@ -143,8 +140,6 @@ class OsmGraph():
             weightedG.nodes[nodeCounter]['osmid'] = spatialG.nodes[u]['osmid']
             weightedG.nodes[nodeCounter]['source'] = 0
             weightedG.nodes[nodeCounter]['destination'] = 0
-            weightedG.nodes[nodeCounter]['up'] = 0
-            weightedG.nodes[nodeCounter]['down'] = 0
             nodeCounter += 1
 
         edgeCounter = 1
@@ -466,44 +461,13 @@ class OsmGraph():
         self.nxGraph.nodes[source]['source'] += load
         self.nxGraph.nodes[destination]['destination'] += load
         self.recentPaths.append(path)
-        if [source, destination, load] not in [[row[0],row[1],row[2]] for row in self.SDpairs]:
+        if [source, destination] not in [[row[0],row[1]] for row in self.SDpairs]:
             self.SDpairs.append([source, destination, load])
             self.SDpaths.append(path)
 
         return source, destination, path
 
-    def allocateLaneBasedOnLoad(self):
-        roadChanges = []
-        print(self.SDpairs)
-        for u, v in self.nxGraph.edges:
-            self.nxGraph.edges[u, v]['down'] = 0
-            self.nxGraph.edges[u, v]['up'] = 0
 
-        self.SDpairs = self.SDpairs[-20:len(self.SDpairs)]
-        self.SDpaths = self.SDpaths[-20:len(self.SDpaths)]
-
-        for i in range(20):
-            load = self.SDpairs[i][2]
-            for j in range(len(self.SDpaths[i])-1):
-                if self.nxGraph.nodes[self.SDpaths[i][j]]['id'] < self.nxGraph.nodes[self.SDpaths[i][j+1]]['id']:
-                    self.nxGraph[self.nxGraph.nodes[self.SDpaths[i][j]]['id']][self.nxGraph.nodes[self.SDpaths[i][j+1]]['id']]['up'] += load
-                else:
-                    self.nxGraph[self.nxGraph.nodes[self.SDpaths[i][j]]['id']][self.nxGraph.nodes[self.SDpaths[i][j+1]]['id']]['down'] += load
-
-
-        for u,v in self.nxGraph.edges:
-            imbalance = (self.nxGraph.edges[u, v]['down'] - self.nxGraph.edges[u, v]['up']) / max(
-                (self.nxGraph.edges[u, v]['down'] + self.nxGraph.edges[u, v]['up']), 1)
-
-            minLoad = min(self.nxGraph.edges[u, v]['down'] , self.nxGraph.edges[u, v]['up'])
-
-            if imbalance > 0.3:
-                roadChanges.append([self.nxGraph.edges[u, v]['edgeId'],1])
-            elif imbalance < -0.3:
-                roadChanges.append([self.nxGraph.edges[u, v]['edgeId'],2])
-
-        print(roadChanges)
-        return roadChanges
 
     @staticmethod
     def calculateDistance2p(point1, point2):
@@ -524,4 +488,5 @@ for u,v in self.nxGraph.nxGraph.edges():
     print(self.nxGraph.nxGraph[u][v]['angle map'])
 
                         '''
-
+#spatialG = ox.graph_from_point(( 40.744612, -73.995830), distance=600, network_type='drive')
+#ox.plot_graph(spatialG, edge_linewidth=4, edge_color='b')
