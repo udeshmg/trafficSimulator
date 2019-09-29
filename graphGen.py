@@ -42,7 +42,7 @@ rn.osmGraph.filterSDpairs()
 print("Filtered pairs",rn.osmGraph.filteredSDpairs)
 #rn.osmGraph.drawPathOnMap()
 #rn.osmGraph.drawGraphWithUserTraffic()
-
+rn.osmGraph.drawGraph()
 
 for i in range(20):
     rn.vehicleGenerator.clear()

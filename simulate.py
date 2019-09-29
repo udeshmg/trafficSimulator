@@ -2,6 +2,9 @@ from Road_Network.RoadNetwork import RoadNetwork
 from Stat_Reporter.StatReporter import Reporter
 import os
 
+import sys
+old_stdout = sys.stdout
+
 iterations = 361
 dummyCycles = 120
 rn = RoadNetwork()
@@ -41,8 +44,8 @@ imb = 30
 cost = 12
 d = 3
 length = 5
-#location = "Complete_Data/network5/"
-location = "Results/Imbalance Factor/"+str(imb)+"/"
+location = "Complete_Data/network5/"
+#location = "Results/Imbalance Factor/"+str(imb)+"/"
 #location = "temp/"
 
 rn.depth = d
@@ -52,17 +55,26 @@ if rn.roadElementGenerator.noAgent:
     string = "No agent"
 elif rn.roadElementGenerator.laneDirChange:
     if rn.roadElementGenerator.isGuided:
-        file = "laneChange2"+str(rn.numOfVehiclesPerBlock)
+        file = "laneChange3"+str(rn.numOfVehiclesPerBlock)
         string = "Lane change: Guided"
     elif rn.roadElementGenerator.noLaneChange:
         file = "signalOnly1" + str(rn.numOfVehiclesPerBlock)
         string = "Signal only"
     else:
-        file = "noGuide1"+str(rn.numOfVehiclesPerBlock)
+        file = "noGuide2"+str(rn.numOfVehiclesPerBlock)
         string = "Lane change: no Guide"
 else:
     file = "signalOnly1"+str(rn.numOfVehiclesPerBlock)
     string = "Signal only"
+
+print("Location: ", location+file)
+
+os.makedirs(os.path.dirname(location+file+"/message.log"), exist_ok=True)
+log_file = open(location+file+"/message.log","w")
+sys.stdout = log_file
+
+
+
 
 rn.init()
 rn.roadElementGenerator.timeToLaneShift = cost
@@ -134,16 +146,18 @@ for i in range(dummyCycles):
         #rn.trafficLoader.simulateStartTime = 1080
         #rn.trafficGenerator.trafficPattern = 2
 
+
+
 print("Number of vehicles: ", rn.vehicleGenerator.vehicleId, " Index: ", rn.trafficLoader.lastIndex, " Added v: " , rn.trafficLoader.numOfVehicles)
 for i in range(len(rn.roadElementGenerator.intersectionList)):
     rn.roadElementGenerator.intersectionList[i].setIntersectionData()
 
 for i in range(len(rn.roadElementGenerator.roadList)):
     rn.roadElementGenerator.roadList[i].setRoadConfigurationData()
-    print(" Road id: ", i+1,
+    '''print(" Road id: ", i+1,
           rn.roadElementGenerator.roadList[i].get_num_vehicles(rn.roadElementGenerator.roadList[i].upstream_id, 'T')+
           rn.roadElementGenerator.roadList[i].get_num_vehicles(rn.roadElementGenerator.roadList[i].downstream_id, 'T'),
-          len(rn.roadElementGenerator.roadList[i].vehiclesFromDownstream)+len(rn.roadElementGenerator.roadList[i].vehiclesFromUpstream))
+          len(rn.roadElementGenerator.roadList[i].vehiclesFromDownstream)+len(rn.roadElementGenerator.roadList[i].vehiclesFromUpstream))'''
 
 
 '''for i in range(len(rn.vehicleGenerator.vehicleList)):
@@ -154,7 +168,8 @@ for i in range(len(rn.roadElementGenerator.roadList)):
 if saveMode:
     reporter.saveData(location+file)
 
-
+sys.stdout = old_stdout
+log_file.close()
 
 with open(filename, "a") as f:
     f.write("Completed:\n")

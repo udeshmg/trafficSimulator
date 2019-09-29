@@ -42,7 +42,7 @@ class TrafficCollector:
                 dLat = self.vehicleData.iat[self.lastIndex, 8]
                 temp += 1
                 self.numOfVehicles += 1
-                vehicleList.append([sLong,sLat,dLong, dLat])
+                vehicleList.append([sLong,sLat,dLong, dLat, self.lastIndex])
             self.lastTimeRead = time
             self.lastIndex += 1
         #print("Vehicle List", vehicleList)

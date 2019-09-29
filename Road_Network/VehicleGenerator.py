@@ -23,9 +23,11 @@ class VehicleGenerator():
     def getGraph(self, osmG):
         self.osmG = osmG
 
-    def generateVehicleWithId(self, path, debugLvl=3):
+    def generateVehicleWithId(self, path, debugLvl=3, indexAtFile=0):
         #path = nx.shortest_path(self.osmG.nxGraph,sourceId,destinationId,weight='length')
         if len(path) > 1:
+            if self.vehicleId == 133 or self.vehicleId == 35:
+                print("### ", path, self.vehicleId)
             decodedPath, freeFlowTime = self.decodePath(path)
             vb = VehicleBlock(1, decodedPath, self.vehicleId, debugLvl)
             vb.freeFlowTime = freeFlowTime

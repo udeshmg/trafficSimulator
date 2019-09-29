@@ -40,30 +40,36 @@ col3 = file['Lane change system with guidance']
 ind = np.arange(N)                # the x locations for the groups
 width = 0.2                   # the width of the bars
 
+
+a = [{"hatch":'x'}, {"hatch":'+'}, {"hatch":'.'}]
+
+kwargs = a[0]
 ## the bars
 rects1 = ax.bar(ind, col1, width,
                 color='grey',
                 yerr=traffic_signalsStd[0:N],
-                error_kw=dict(elinewidth=2,ecolor='black'))
+                error_kw=dict(elinewidth=2,ecolor='black'), **kwargs)
 
-
+kwargs = a[1]
 rects2 = ax.bar(ind+width, col2, width,
                 color='green',
                 yerr=lane_change_noGuideStd[0:N],
-                error_kw=dict(elinewidth=2,ecolor='black'))
+                error_kw=dict(elinewidth=2,ecolor='black'), **kwargs)
 
+kwargs = a[2]
 rects3 = ax.bar(ind+2*width, col3, width,
                     color='blue',
                     yerr=lane_change_withGuideStd[0:N],
-                    error_kw=dict(elinewidth=2,ecolor='black'))
+                    error_kw=dict(elinewidth=2,ecolor='black'), **kwargs)
 
 # axes and labels
 ax.set_xlim(-width,len(ind)+width)
-#ax.set_ylim(0,400)
-ax.set_ylabel('time(min)',fontsize=24)
-ax.set_xlabel('up sampled factor',fontsize=24)
+ax.set_ylim(0,8.6)
+ax.set_ylabel('Average travel time (min)',fontsize=24)
+ax.set_xlabel('Up sampled factor',fontsize=24)
 #ax.set_title('Parameter:'+description)
-xTickMarks = [5,6,7]
+#xTickMarks = [5,6,7]
+xTickMarks = [6,7,8]
 ax.set_xticks(ind+2*width)
 xtickNames = ax.set_xticklabels(xTickMarks)[0:4]
 
@@ -73,7 +79,8 @@ plt.setp(xtickNames, fontsize=24)
 ## add a legend
 ax.legend( (rects1[0], rects2[0], rects3[0]), ('TS',
                                                 'LD',
-                                                'LD-PDG') )
-plt.gcf().subplots_adjust(bottom=0.2)
-plt.gcf().subplots_adjust(left=0.2)
+                                                'LD-PDG'), fontsize=24 )
+plt.gcf().subplots_adjust(bottom=0.15)
+plt.gcf().subplots_adjust(left=0.15)
+plt.gcf().set_size_inches(7,7)
 plt.show()

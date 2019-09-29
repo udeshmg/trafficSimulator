@@ -104,13 +104,18 @@ class Display:
         plt.colorbar()
 
     @staticmethod
-    def histogram(arr,title):
-        plt.figure(12)
-        plt.ylim(0,1500)
+    def histogram(arr,title=5):
+        plt.figure(title)
+        #plt.ylim(0,max(arr))
+        plt.xlim(0.8,10)
         #plt.title(title)
         plt.hist(arr, color='blue', edgecolor='black', bins=[i/10 for i in range(1,150)])
-        plt.xlabel('deviation from free flow travel time')
-        plt.ylabel('number of vehicles(=frequency)')
+        plt.tick_params( labelsize=36)
+        plt.xlabel('DFFT',fontsize=36)
+        plt.ylabel('number of vehicles',fontsize=36)
+        plt.gcf().subplots_adjust(bottom=0.12, top=0.99)
+        plt.gcf().subplots_adjust(left=0.3)
+        plt.gcf().set_size_inches(7,7)
 
     @staticmethod
     def perVehiclePlot(arr,index,title):
