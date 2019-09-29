@@ -219,8 +219,8 @@ class OsmGraph():
         nx.draw_networkx_nodes(self.nxGraph, pos, node_color=colorMap)
         nx.draw_networkx_edge_labels(self.nxGraph,pos,
                                      edge_labels=dict([((u, v,), d['edgeId']) for u, v, d in self.nxGraph.edges(data=True)]))
-        #plt.show()
-        plt.pause(1)
+        plt.show()
+        #plt.pause(1)
 
     def drawPathOnMap(self,imbalance=False, type=False, dir='both'):
         for u,v in self.nxGraph.edges():
@@ -421,7 +421,7 @@ class OsmGraph():
 
 
     def getNearestNode(self,locationList):
-        SDList =[[-1,-1,-1.0,-1.0] for i in range(len(locationList))]
+        SDList =[[-1,-1,-1.0,-1.0, -1] for i in range(len(locationList))]
         for n in self.nxGraph.nodes():
             for l in range(len(locationList)):
                 nodeLoc = [self.nxGraph.nodes[n]['x'], self.nxGraph.nodes[n]['y']]
@@ -441,6 +441,8 @@ class OsmGraph():
                     SDList[l][1] = self.nxGraph.nodes[n]['id']
                     SDList[l][3] = distance2
 
+                SDList[l][4] = locationList[l][4]
+
         for l in range(len(SDList)):
             self.nxGraph.nodes[SDList[l][0]]['source'] += 1
             self.nxGraph.nodes[SDList[l][1]]['destination'] += 1
@@ -453,7 +455,7 @@ class OsmGraph():
                 self.SDpairs.append([SDList[l][0],SDList[l][1]])
                 self.SDpaths.append(path)
 
-        return [[row[0],row[1],row[4]] for row in SDList]
+        return [[row[0],row[1],row[5],row[4]] for row in SDList]
 
     def getPathFromNodes(self, source, destination, load):
         path = nx.shortest_path(self.nxGraph, source, destination, weight='time to travel')

@@ -48,9 +48,9 @@ class RoadNetwork:
         self.roadElementGenerator.connectElements()
         print("Roads Elements generated.")
 
-    def generateVehicles(self, source, path, numOfVehicles=1, debugLvl=3):
+    def generateVehicles(self, source, path, numOfVehicles=1, debugLvl=3, indexAtfile=0):
         for i in range(numOfVehicles):
-            vb, startEdge = self.vehicleGenerator.generateVehicleWithId(path, debugLvl)
+            vb, startEdge = self.vehicleGenerator.generateVehicleWithId(path, debugLvl, indexAtfile)
             if vb != None or startEdge != None:
                 rid = self.osmGraph.nxGraph[startEdge[0]][startEdge[1]]['edgeId']
 
@@ -68,7 +68,7 @@ class RoadNetwork:
             vehicleList = self.trafficLoader.getData(step)
             nodeList = self.osmGraph.getNearestNode(vehicleList)
             for n in nodeList:
-                self.generateVehicles(n[0],n[2],self.numOfVehiclesPerBlock, 2)
+                self.generateVehicles(n[0],n[2],self.numOfVehiclesPerBlock, 2, n[3])
         else:
             for i in self.trafficGenerator.getTrafficData():
                 n = self.osmGraph.getPathFromNodes(i[0],i[1],i[2])
@@ -141,7 +141,10 @@ class RoadNetwork:
             for j, k, l in zip(conflicts, requestList, laneChangeactionList):
                 if conflicts[j] < self.threshold:  # number of conflicts
                     print("Allow Change: intersection ", k, " Rid: ", j)
-                    self.roadElementGenerator.intersectionList[k - 1].enableChange(j, l)
+                    #self.roadElementGenerator.intersectionList[k - 1].enableChange(j, l)
+
+                    self.roadElementGenerator.roadList[j-1].change_direction(l,
+                        self.roadElementGenerator.roadList[j - 1].upstream_id)
                 else:
                     print("Disable Change: intersection ", k, " Rid: ", j)
                     self.roadElementGenerator.intersectionList[k - 1].holdChange(j, l)

@@ -55,8 +55,8 @@ class DependencyGraph():
         for n in self.diG.nodes():
             self.diG.nodes[n]['imbalance'] = roadList[n-1].get_traffic_imbalance(roadList[n-1].upstream_id)  # Current imbalance
             self.diG.nodes[n]['configuration'] = roadList[n-1].get_in_lanes_num(roadList[n-1].upstream_id)  # Current config
-            self.diG.nodes[n]['UP'] = roadList[n-1].get_num_vehicles(roadList[n-1].upstream_id, 'T')
-            self.diG.nodes[n]['DOWN'] = roadList[n-1].get_num_vehicles(roadList[n-1].downstream_id, 'T')
+            self.diG.nodes[n]['UP'] = roadList[n-1].upTraffic
+            self.diG.nodes[n]['DOWN'] = roadList[n-1].downTraffic
             self.diG.nodes[n]['load'] = roadList[n-1].get_num_vehicles(roadList[n-1].upstream_id, 'T') + roadList[n-1].get_num_vehicles(roadList[n-1].downstream_id, 'T')
         return self.diG
 
@@ -110,7 +110,8 @@ class DependencyGraph():
                         inc, dec, action = self.road_decision(self.diG.nodes[currentNode]['imbalance'],
                                                          self.diG.nodes[currentNode]['configuration'],
                                                          increase_action, decrease_action,
-                                                         self.diG.nodes[currentNode]['load'], load_th)
+                                                         self.diG.nodes[currentNode]['load'], load_th,
+                                                              self.diG.nodes[currentNode]['UP'], self.diG.nodes[currentNode]['DOWN'])
                         '''if action != 0:
                             if not currentNode in startNodelist:
                                 print("Additional change", currentNode, action)
@@ -181,7 +182,8 @@ class DependencyGraph():
                 print("Rid: ", node, self.diG.nodes[node]['imbalance'], self.diG.nodes[node]['configuration'], increase_action, decrease_action)
                 inc, dec, action = self.road_decision(self.diG.nodes[node]['imbalance'],
                                                  self.diG.nodes[node]['configuration'],
-                                                 increase_action, decrease_action, self.diG.nodes[node]['load'], load_th)
+                                                 increase_action, decrease_action, self.diG.nodes[node]['load'], load_th,
+                                                      self.diG.nodes[node]['UP'], self.diG.nodes[node]['DOWN'])
 
                 self.diG.nodes[node]['action'] = action
 
@@ -193,7 +195,7 @@ class DependencyGraph():
         return conflict_counter, additional_changes
 
     @staticmethod
-    def road_decision(imbalance, configuration, increase_action, decrease_action, load=0, thresh=20, up=0, down=0):
+    def road_decision1(imbalance, configuration, increase_action, decrease_action, load=0, thresh=20, up=0, down=0):
         # imbalance 1 means output high
         # conf input lanes
         increase_result = False
@@ -285,7 +287,7 @@ class DependencyGraph():
         return increase_result, decrease_result, action
 
     @staticmethod
-    def road_decision1(imbalance, configuration, increase_action, decrease_action, load=0, thresh=20):
+    def road_decision(imbalance, configuration, increase_action, decrease_action, load=0, thresh=20, up=0, down=0):
         # imbalance 1 means output high
         # conf input lanes
         increase_result = False
@@ -353,6 +355,100 @@ class DependencyGraph():
                 '''if increase_action > decrease_action and load >= thresh:
                     action = 1
                 elif increase_action < decrease_action and load >= thresh:
+                    action = -1'''
+                decrease_result = True
+                increase_result = True
+        return increase_result, decrease_result, action
+
+    @staticmethod
+    def road_decision2(imbalance, configuration, increase_action, decrease_action, load=0, thresh=20, up=0, down=0):
+        # imbalance 1 means output high
+        # conf input lanes
+        increase_result = False
+        decrease_result = False
+
+        action = 0
+        if (imbalance == 1 and configuration == 3):
+            increase_result = True
+            decrease_result = False
+            print("Extra Change")
+            action = -1
+
+        elif (imbalance == 2 and configuration == 3):
+            increase_result = False
+            decrease_result = True
+            print("Extra Change")
+            action = 1
+
+
+        elif imbalance == 1:
+            if decrease_action > 0 and increase_action == 0 and up < 20:  # when only output increases
+                decrease_result = True
+                if load >= thresh:
+                    action = -1
+
+            elif decrease_action >= 0 and increase_action > 0:
+                decrease_result = False
+                increase_result = True
+
+
+
+        elif (imbalance == 2 and configuration == 4):
+            increase_result = False
+            decrease_result = True
+
+        elif imbalance == 2:
+            if increase_action > 0 and decrease_action == 0 and down <20:
+                increase_result = True
+                if load >= thresh:
+                    action = 1
+
+            elif increase_action >= 0 and decrease_action > 0:
+                decrease_result = True
+                increase_result = False
+
+
+
+
+        elif imbalance == 0:
+            if configuration == 2:
+                if increase_action == 0:
+                    decrease_result = True
+                    increase_result = True
+
+                else:
+                    decrease_result = False
+                    increase_result = True
+                    if down < 20:
+                        action = 1
+                    #else:
+                    #    print("Almost full: ")
+
+                if up > 100 and down > 100:
+                    print("balancing")
+                    action = 1
+
+            elif configuration == 4:
+                if decrease_action == 0:
+                    decrease_result = True
+                    increase_result = True
+
+                else:
+                    decrease_result = True
+                    increase_result = False
+                    if up < 20:
+                        action = -1
+                    #else:
+                    #    print("Almost full: ")
+
+                if up > 100 and down > 100:
+                    print("balancing")
+                    action = -1
+
+            else:  # action change incident
+                '''if increase_action > decrease_action and load > thresh:
+                    action = 1
+                elif increase_action < decrease_action and load > thresh:
                     action = -1'''
                 decrease_result = True
                 increase_result = True

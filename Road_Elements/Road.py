@@ -45,6 +45,9 @@ class Road:
         self.laneChangeRequest = []
         self.enableDependencyCheck = False
 
+        self.cycle_time = 0
+        self.upTraffic = 0
+        self.downTraffic = 0
 
         # Init Lanes
         # make first half of the lanes towards the intersection 'IN'
@@ -570,20 +573,29 @@ class Road:
         self.removeFromTravellingQueue()
 
         # self.remove_outgoing_vehicles(self.capacity('OUT'))
-
+        check = False
         if (self.get_num_vehicles(self.downstream_id) - self.get_num_vehicles(self.upstream_id)) / max(self.get_num_vehicles(self.downstream_id), self.get_num_vehicles(self.upstream_id),
                                                                    20) > 0.47:
             self.trafficImbalance_counter = min(60, self.trafficImbalance_counter + 1)  # out going traffic high
+            check = True
         if (self.get_num_vehicles(self.upstream_id)- self.get_num_vehicles(self.downstream_id)) / max(self.get_num_vehicles(self.downstream_id), self.get_num_vehicles(self.upstream_id),
                                                                    20) > 0.47:
             self.trafficImbalance_counter = max(-60, self.trafficImbalance_counter - 1)
+            check = True
 
         if (self.trafficImbalance_counter > 0) and (self.get_num_vehicles(self.upstream_id) - self.get_num_vehicles(self.downstream_id)) > 2:
             self.trafficImbalance_counter = 0
+            check = True
         if (self.trafficImbalance_counter < 0) and (self.get_num_vehicles(self.downstream_id) - self.get_num_vehicles(self.upstream_id)) > 2:
             self.trafficImbalance_counter = 0
+            check = True
         if self.get_num_vehicles(self.downstream_id) == self.get_num_vehicles(self.upstream_id):
             self.trafficImbalance_counter = 0
+            check = True
+
+
+        self.upTraffic = 0.9*self.upTraffic + (1-0.9)*self.get_num_vehicles(self.upstream_id,'T')
+        self.downTraffic = 0.9*self.downTraffic + (1-0.9)*self.get_num_vehicles(self.downstream_id,'T')
 
         # print("Imbalance counter", self.id, self.trafficImbalance_counter)
 
@@ -788,5 +800,27 @@ class Road:
 
     def get_id(self):
         return self.id
+
+
+    def act(self, action):
+
+        if action == 2:
+            self.change_direction('OUT', self.upstream_id, 0)
+        elif action == 1:
+            self.change_direction('IN', self.upstream_id, 0)
+
+
+    def getStates(self):
+        state_vec = []
+
+        laneConf = self.get_in_lanes_num(self.upstream_id)
+
+        state_vec.append(int(self.upTraffic))
+        state_vec.append(int(self.downTraffic))
+        state_vec.append(laneConf)
+
+        reward = -abs(self.upTraffic-self.downTraffic)/120 ## update value
+        print("Reward: ", reward)
+        return state_vec, reward, False
 
 

@@ -5,15 +5,15 @@ import numpy as np
 
 meanTime = np.empty(shape=0)
 reporter = Reporter()
-#reporter.configure(75,125,480)
-reporter.configure(12,60,799)
-window = 100
+reporter.configure(75,125,480)
+#reporter.configure(12,60,799)
+window = 400
 j = 3
 #data = pd.read_csv("Simulate_Data_new/backup/networktype1/laneChange17/vehicle_data.csv")
 #path  = "Simulate_Data_new/backup/networktype2/"
 #path = "temp/"
-#path  = "Complete_Data/network5/"
-path = "Simulate_Data_small grid/temp/"
+path  = "Complete_Data/network5/"
+#path = "Simulate_Data_small grid/temp5/"
 #path = "Simulate_cost_of_lane_change/"
 #path = "Results/cost/"+str(4)+"/"
 i = 0
@@ -21,16 +21,16 @@ i = 0
 #path = "Results/Imbalance Factor/backup/"+str(i)+"/"
 #config = "signalOnly"
 #config = "laneChange"
-config = ["noGuide",
+config = ["backup/laneChange",
           "laneChange",
-          "laneChange","laneChange","laneChange", "laneChange"]
+          "laneChange","noGuide","laneChange", "laneChange"]
 #config = "noAgent"
 size = "7"
 
 name = ["1",
-        "1",
         "2",
         "3",
+        "1",
         #"1",
         #"1"
         ]
@@ -76,9 +76,10 @@ for i in range(len(name)):
     reporter.allIntersectionWaitingTime(window, j, colorMap[i], name='Total Wait time: '+config[i]+str(i))
     a = reporter.allVehicleTiming(window, colorMap[i], name='Travel time: ' + config[i] + str(size))
     meanTime = np.append(meanTime, a)
-    #reporter.plotTravelTimeShift(1)
+    #reporter.plotTravelTimeShift(i+14)
     reporter.roadConfiguration(i, config)
     print(reporter.vehicleData1.shape)
+    #
 
 '''#type = "/laneChange"
 file = path+type+"1"

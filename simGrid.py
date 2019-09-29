@@ -45,7 +45,7 @@ rn.trafficLoader.simulateStartTime = 0
 
 imb = 30
 cost = 12
-location = "Simulate_Data_small grid/temp/"
+location = "Simulate_Data_small grid/temp5/"
 
 #location = "Results/cost/"+str(cost)+"/"
 #location = "temp/"
@@ -140,7 +140,7 @@ for i in range(iterations):
         rn.dependencyG.drawGraph()'''
 
     if i == 400:
-        rn.trafficGenerator.trafficPattern = 7
+        rn.trafficGenerator.trafficPattern = 9
         gen = 3
 
 
