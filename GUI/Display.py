@@ -48,16 +48,26 @@ class Display:
         plt.scatter(i, average_val[3], edgecolors='b', c=None, s=1)
 
     @staticmethod
-    def single_arr(arr, figure_num=6, edgeclr='b', name='Add the title name'):
-        plt.figure(figure_num)
-        plt.title(name)
-        #plt.xlim(400,800)
-        #plt.ylim(100,500)
-        plt.xlabel('time steps')
-        plt.ylabel('Time(s)')
+    def single_arr(arr, figure_num=6, edgeclr='b', name='Add the title name', legendS=('LD','HLA','DLA','TS','Temp')):
+        fig = plt.figure(figure_num)
+
+        #plt.title(name)
+        plt.xlim(390,720)
+        plt.ylim(3,8)
+        #plt.legend('TS')
+        plt.xlabel('time steps',fontsize=16)
+        plt.ylabel('Average travel time \n (min)',fontsize=16)
+        plt.tick_params(labelsize=16)
         #plt.legend('Guided lane change')
         i = [i for i in range(len(arr))]
-        plt.scatter(i, arr, edgecolors=edgeclr, c=None, s=1)
+        plt.scatter(i, arr/60, edgecolors=edgeclr, c=None, s=1)
+        ax = fig.axes
+        #ax[0].legend(legendS)
+        plt.rcParams["legend.markerscale"] = -0.5
+        ax[0].legend(legendS, prop={'size': 12})
+        plt.gcf().subplots_adjust(bottom=0.2)
+        plt.gcf().subplots_adjust(left=0.2)
+
 
 
     @staticmethod

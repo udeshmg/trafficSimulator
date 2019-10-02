@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
+
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
@@ -35,30 +36,39 @@ file = pd.read_csv("Complete_Data/network6/backup/networktype4.csv")
 col1 = file['Traffic signals only']
 col2 = file['Lane change system with no guidance']
 col3 = file['Lane change system with guidance']
+col4 = file['demand']
+
+
 
 ## necessary variables
 ind = np.arange(N)                # the x locations for the groups
 width = 0.2                   # the width of the bars
 
 
-a = [{"hatch":'x'}, {"hatch":'+'}, {"hatch":'.'}]
+a = [{"hatch":'x'}, {"hatch":'+'}, {"hatch":'.'}, {"hatch": "/"}]
 
 kwargs = a[0]
 ## the bars
 rects1 = ax.bar(ind, col1, width,
-                color='grey',
+                color='gray',
                 yerr=traffic_signalsStd[0:N],
                 error_kw=dict(elinewidth=2,ecolor='black'), **kwargs)
 
 kwargs = a[1]
-rects2 = ax.bar(ind+width, col2, width,
+rects2 = ax.bar(ind+2*width, col2, width,
                 color='green',
                 yerr=lane_change_noGuideStd[0:N],
                 error_kw=dict(elinewidth=2,ecolor='black'), **kwargs)
 
 kwargs = a[2]
-rects3 = ax.bar(ind+2*width, col3, width,
+rects3 = ax.bar(ind+3*width, col3, width,
                     color='blue',
+                    yerr=lane_change_withGuideStd[0:N],
+                    error_kw=dict(elinewidth=2,ecolor='black'), **kwargs)
+
+kwargs = a[3]
+rects4 = ax.bar(ind+width, col4, width,
+                    color='red',
                     yerr=lane_change_withGuideStd[0:N],
                     error_kw=dict(elinewidth=2,ecolor='black'), **kwargs)
 
@@ -77,9 +87,9 @@ ax.tick_params(axis="y", labelsize=24)
 plt.setp(xtickNames, fontsize=24)
 
 ## add a legend
-ax.legend( (rects1[0], rects2[0], rects3[0]), ('TS',
+ax.legend( (rects4[0], rects1[0], rects2[0], rects3[0]), ('DLA','TS',
                                                 'LD',
-                                                'LD-PDG'), fontsize=24 )
+                                                'HLA'), fontsize=24 )
 plt.gcf().subplots_adjust(bottom=0.15)
 plt.gcf().subplots_adjust(left=0.15)
 plt.gcf().set_size_inches(7,7)

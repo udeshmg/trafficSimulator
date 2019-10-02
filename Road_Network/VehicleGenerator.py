@@ -26,10 +26,13 @@ class VehicleGenerator():
     def generateVehicleWithId(self, path, debugLvl=3, indexAtFile=0):
         #path = nx.shortest_path(self.osmG.nxGraph,sourceId,destinationId,weight='length')
         if len(path) > 1:
-            if self.vehicleId == 133 or self.vehicleId == 35:
+            if self.vehicleId == 91 or self.vehicleId == 92:
                 print("### ", path, self.vehicleId)
+                debugLvl = 2
+            else:
+                debugLvl = 2
             decodedPath, freeFlowTime = self.decodePath(path)
-            vb = VehicleBlock(1, decodedPath, self.vehicleId, debugLvl)
+            vb = VehicleBlock(1, decodedPath, self.vehicleId, debugLvl, path=path)
             vb.freeFlowTime = freeFlowTime
             self.vehicleId += 1
             self.vehicleList.append(vb)

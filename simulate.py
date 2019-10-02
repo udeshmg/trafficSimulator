@@ -12,9 +12,9 @@ reporter = Reporter()
 
 #coordx, coordy, radius = -73.9224, 40.746, 350
 
-coordx, coordy, radius = -73.92, 40.75, 600 # type3
+#coordx, coordy, radius = -73.92, 40.75, 600 # type3
 #coordx, coordy, radius =  -73.995830, 40.744612, 600
-#coordx, coordy, radius = -73.996575, 40.747477, 600
+coordx, coordy, radius = -73.996575, 40.747477, 600
 #coordx, coordy, radius = -73.92, 40.749, 500
 rn.buildGraph(coordx, coordy, radius)
 #rn.buildGraph(-73.93, 40.755, 200)
@@ -24,17 +24,17 @@ rn.buildGraph(coordx, coordy, radius)
 #rn.osmGraph.drawGraph(True, 'time to travel')
 
 #### ---- configuration phase --------###
-rn.roadElementGenerator.isGuided = True
+rn.roadElementGenerator.isGuided = False
 rn.roadElementGenerator.laneDirChange = True
 rn.roadElementGenerator.preLearned = True
 rn.roadElementGenerator.noAgent = False
 rn.autoGenTrafficEnabled = False
 rn.roadElementGenerator.isNoBound = True
-rn.roadElementGenerator.noLaneChange = False
-
+rn.roadElementGenerator.noLaneChange = True
+manualChange = True
 rn.trafficGenerator.trafficPattern = 3
 
-rn.numOfVehiclesPerBlock = 7
+rn.numOfVehiclesPerBlock = 8
 saveMode = True
 #Time in minutes
 rn.trafficLoader.simulateStartTime = 0
@@ -44,22 +44,26 @@ imb = 30
 cost = 12
 d = 3
 length = 5
-location = "Complete_Data/network5/"
+location = "Complete_Data/network6/"
 #location = "Results/Imbalance Factor/"+str(imb)+"/"
 #location = "temp/"
 
 rn.depth = d
 rn.dependencyG.len = length
 if rn.roadElementGenerator.noAgent:
-    file = "noAgent1"
+    file = "noAgent1"+str(rn.numOfVehiclesPerBlock)
     string = "No agent"
 elif rn.roadElementGenerator.laneDirChange:
     if rn.roadElementGenerator.isGuided:
         file = "laneChange3"+str(rn.numOfVehiclesPerBlock)
         string = "Lane change: Guided"
     elif rn.roadElementGenerator.noLaneChange:
-        file = "signalOnly1" + str(rn.numOfVehiclesPerBlock)
-        string = "Signal only"
+        if manualChange:
+            file = "manual2" + str(rn.numOfVehiclesPerBlock)
+            string = "manual"
+        else:
+            file = "signalOnly1" + str(rn.numOfVehiclesPerBlock)
+            string = "Signal only"
     else:
         file = "noGuide2"+str(rn.numOfVehiclesPerBlock)
         string = "Lane change: no Guide"
@@ -128,6 +132,9 @@ for i in range(iterations):
     if (i%6) == 0:
         rn.addTrafficFromData((i)/6)
 
+    if i%40 and manualChange:
+        rn.setRoadconfigPath()
+
     if i == 180:
         rn.trafficGenerator.trafficPattern = 3
 
@@ -141,6 +148,8 @@ for i in range(dummyCycles):
     rn.simulateOneStep(i+iterations)
     reporter.currentTime = (i+1+iterations)*10
 
+    if i%40 and manualChange:
+        rn.setRoadconfigPath()
 
     #if i == 360:
         #rn.trafficLoader.simulateStartTime = 1080
