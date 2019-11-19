@@ -2,19 +2,19 @@ from Road_Network.RoadNetwork import RoadNetwork
 from Stat_Reporter.StatReporter import Reporter
 import os
 
-import sys
-old_stdout = sys.stdout
+#import sys
+#old_stdout = sys.stdout
 
 iterations = 361
-dummyCycles = 120
+dummyCycles = 240
 rn = RoadNetwork()
 reporter = Reporter()
 
 #coordx, coordy, radius = -73.9224, 40.746, 350
 
-#coordx, coordy, radius = -73.92, 40.75, 600 # type3
+coordx, coordy, radius = -73.92, 40.75, 600 # type3
 #coordx, coordy, radius =  -73.995830, 40.744612, 600
-coordx, coordy, radius = -73.996575, 40.747477, 600
+#coordx, coordy, radius = -73.996575, 40.747477, 600
 #coordx, coordy, radius = -73.92, 40.749, 500
 rn.buildGraph(coordx, coordy, radius)
 #rn.buildGraph(-73.93, 40.755, 200)
@@ -27,45 +27,70 @@ rn.buildGraph(coordx, coordy, radius)
 rn.roadElementGenerator.isGuided = False
 rn.roadElementGenerator.laneDirChange = True
 rn.roadElementGenerator.preLearned = True
-rn.roadElementGenerator.noAgent = False
-rn.autoGenTrafficEnabled = False
+rn.roadElementGenerator.noAgent = True
+rn.autoGenTrafficEnabled = False # Remove when using real data
 rn.roadElementGenerator.isNoBound = True
-rn.roadElementGenerator.noLaneChange = True
-manualChange = True
-rn.trafficGenerator.trafficPattern = 3
+rn.roadElementGenerator.noLaneChange = False
 
-rn.numOfVehiclesPerBlock = 8
+rn.roadElementGenerator.selfLaneChange = False
+rn.roadElementGenerator.enableDependencyCheck = False
+
+manualChange = True
+rn.manualAllocate = manualChange
+rn.trafficGenerator.trafficPattern = 1
+rn.demandCalculationFreq = 15
+rn.numOfVehiclesPerBlock = 5
+rn.osmGraph.minLoad = 100
 saveMode = True
 #Time in minutes
 rn.trafficLoader.simulateStartTime = 0
 #### ---- configuration phase --------###
 
+freq = 2
 imb = 30
 cost = 12
 d = 3
 length = 5
-location = "Complete_Data/network6/"
-#location = "Results/Imbalance Factor/"+str(imb)+"/"
+#location = "Complete_Data_new/network5/Imbalance/"+str(imb)+"/"
+location = "Complete_Data/network5/results/"
+#location = "Complete_Data/cost/"+str(cost)+"/"
+#location = "Complete_Data/minLoad/"+str(rn.osmGraph.minLoad)+"/"
+#location = "Complete_Data/depth/"+str(d)+"/"
 #location = "temp/"
-
+rn.depFreq = freq
 rn.depth = d
 rn.dependencyG.len = length
 if rn.roadElementGenerator.noAgent:
-    file = "noAgent1"+str(rn.numOfVehiclesPerBlock)
-    string = "No agent"
+    if manualChange:
+        file = "manualnoAgent"+ str(rn.demandCalculationFreq) + str(rn.numOfVehiclesPerBlock)
+        string = "manualnoAgent"
+    else:
+        file = "SIG" + str(rn.numOfVehiclesPerBlock)
+        string = "No agent"
+    '''else:
+        if rn.roadElementGenerator.enableDependencyCheck:
+            file = "HLA1"+str(rn.numOfVehiclesPerBlock)
+            string = "No agent"
+        elif rn.roadElementGenerator.selfLaneChange:
+            file = "LD" + str(rn.numOfVehiclesPerBlock)
+            string = "No agent"
+        else:
+            file = "SIG" + str(rn.numOfVehiclesPerBlock)
+            string = "No agent"'''
+
 elif rn.roadElementGenerator.laneDirChange:
     if rn.roadElementGenerator.isGuided:
-        file = "laneChange3"+str(rn.numOfVehiclesPerBlock)
+        file = "laneChange"+str(rn.numOfVehiclesPerBlock)
         string = "Lane change: Guided"
     elif rn.roadElementGenerator.noLaneChange:
         if manualChange:
             file = "manual2" + str(rn.numOfVehiclesPerBlock)
             string = "manual"
         else:
-            file = "signalOnly1" + str(rn.numOfVehiclesPerBlock)
+            file = "signalOnly" + str(rn.numOfVehiclesPerBlock)
             string = "Signal only"
     else:
-        file = "noGuide2"+str(rn.numOfVehiclesPerBlock)
+        file = "noGuide3"+str(rn.numOfVehiclesPerBlock)
         string = "Lane change: no Guide"
 else:
     file = "signalOnly1"+str(rn.numOfVehiclesPerBlock)
@@ -75,7 +100,7 @@ print("Location: ", location+file)
 
 os.makedirs(os.path.dirname(location+file+"/message.log"), exist_ok=True)
 log_file = open(location+file+"/message.log","w")
-sys.stdout = log_file
+#sys.stdout = log_file
 
 
 
@@ -129,14 +154,23 @@ for i in range(iterations):
     print("Step: ",i, " PID:",pid)
     rn.simulateOneStep(i)
     reporter.currentTime = (i+1)*10
-    if (i%6) == 0:
-        rn.addTrafficFromData((i)/6)
 
-    if i%40 and manualChange:
-        rn.setRoadconfigPath()
+    if rn.autoGenTrafficEnabled:
+        if (i%2) == 0 and (i > 250 or i < 230):
+            rn.addTrafficFromData((i)/6)
+    else:
+        if (i%3) == 0:
+            rn.addTrafficFromData((i) / 6)
 
-    if i == 180:
-        rn.trafficGenerator.trafficPattern = 3
+
+    #if i%40== 0 and manualChange:
+    #    rn.setRoadconfigPath()
+
+    if i%30 == 0:
+        if rn.trafficGenerator.trafficPattern == 2:
+            rn.trafficGenerator.trafficPattern = 1
+        if rn.trafficGenerator.trafficPattern == 1:
+            rn.trafficGenerator.trafficPattern = 2
 
     #rn.dependencyG.createVariableDAG(rn.osmGraph.nxGraph, rn.osmGraph.SDpaths)
     #rn.dependencyG.drawGraph()
@@ -177,8 +211,8 @@ for i in range(len(rn.roadElementGenerator.roadList)):
 if saveMode:
     reporter.saveData(location+file)
 
-sys.stdout = old_stdout
-log_file.close()
+#sys.stdout = old_stdout
+#log_file.close()
 
 with open(filename, "a") as f:
     f.write("Completed:\n")

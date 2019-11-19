@@ -62,6 +62,17 @@ class DependencyGraph():
 
     def find_dependency(self, startNodelist, actionList, depth, threshold, load_th=20):
         print("Entered")
+
+        '''temp = []
+        print(startNodelist)
+        for i in range(len(startNodelist)):
+            if not self.diG.has_node(startNodelist[i]):
+                temp.append(i)
+
+        for i in range(len(temp)):
+            print(temp[i])
+            del startNodelist[temp[i]]'''
+
         for node in self.diG.nodes():
             self.diG.nodes[node]['list'] = []
             self.diG.nodes[node]['change'] = 0
@@ -195,7 +206,7 @@ class DependencyGraph():
         return conflict_counter, additional_changes
 
     @staticmethod
-    def road_decision1(imbalance, configuration, increase_action, decrease_action, load=0, thresh=20, up=0, down=0):
+    def road_decision(imbalance, configuration, increase_action, decrease_action, load=0, thresh=20, up=0, down=0):
         # imbalance 1 means output high
         # conf input lanes
         increase_result = False
@@ -218,8 +229,8 @@ class DependencyGraph():
         elif imbalance == 1:
             if decrease_action > 0 and increase_action == 0:  # when only output increases
                 decrease_result = True
-                if load >= thresh:
-                    action = -1
+                #if load >= thresh:
+                action = -1
 
             elif decrease_action >= 0 and increase_action > 0:
                 decrease_result = False
@@ -234,8 +245,8 @@ class DependencyGraph():
         elif imbalance == 2:
             if increase_action > 0 and decrease_action == 0:
                 increase_result = True
-                if load >= thresh:
-                    action = 1
+                #if load >= thresh:
+                action = 1
 
             elif increase_action >= 0 and decrease_action > 0:
                 decrease_result = True
@@ -253,7 +264,8 @@ class DependencyGraph():
                 else:
                     decrease_result = False
                     increase_result = True
-                    action = 1
+                    if (0.5*up) > down:
+                        action = 1
                     #else:
                     #    print("Almost full: ")
 
@@ -269,7 +281,8 @@ class DependencyGraph():
                 else:
                     decrease_result = True
                     increase_result = False
-                    action = -1
+                    if (0.5*down) > up:
+                        action = -1
                     #else:
                     #    print("Almost full: ")
 
@@ -278,16 +291,16 @@ class DependencyGraph():
                     action = -1
 
             else:  # action change incident
-                '''if increase_action > decrease_action and load > thresh:
+                if increase_action > decrease_action and 0.5*up > down:
                     action = 1
-                elif increase_action < decrease_action and load > thresh:
-                    action = -1'''
+                elif increase_action < decrease_action and 0.5*down > up:
+                    action = -1
                 decrease_result = True
                 increase_result = True
         return increase_result, decrease_result, action
 
     @staticmethod
-    def road_decision(imbalance, configuration, increase_action, decrease_action, load=0, thresh=20, up=0, down=0):
+    def road_decision1(imbalance, configuration, increase_action, decrease_action, load=0, thresh=20, up=0, down=0):
         # imbalance 1 means output high
         # conf input lanes
         increase_result = False

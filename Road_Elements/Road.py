@@ -575,11 +575,11 @@ class Road:
         # self.remove_outgoing_vehicles(self.capacity('OUT'))
         check = False
         if (self.get_num_vehicles(self.downstream_id) - self.get_num_vehicles(self.upstream_id)) / max(self.get_num_vehicles(self.downstream_id), self.get_num_vehicles(self.upstream_id),
-                                                                   20) > 0.47:
+                                                                   10) > 0.47:
             self.trafficImbalance_counter = min(60, self.trafficImbalance_counter + 1)  # out going traffic high
             check = True
         if (self.get_num_vehicles(self.upstream_id)- self.get_num_vehicles(self.downstream_id)) / max(self.get_num_vehicles(self.downstream_id), self.get_num_vehicles(self.upstream_id),
-                                                                   20) > 0.47:
+                                                                   10) > 0.47:
             self.trafficImbalance_counter = max(-60, self.trafficImbalance_counter - 1)
             check = True
 
@@ -803,11 +803,13 @@ class Road:
 
 
     def act(self, action):
-
+        self.neg_reward = False
         if action == 2:
             self.change_direction('OUT', self.upstream_id, 0)
+            self.neg_reward = True
         elif action == 1:
             self.change_direction('IN', self.upstream_id, 0)
+            self.neg_reward = True
 
 
     def getStates(self):
@@ -819,8 +821,29 @@ class Road:
         state_vec.append(int(self.downTraffic))
         state_vec.append(laneConf)
 
-        reward = -abs(self.upTraffic-self.downTraffic)/120 ## update value
+        if self.neg_reward:
+            reward = -1
+        else:
+            reward = -abs((self.upTraffic / self.get_in_lanes_num(self.upstream_id)) - (self.downTraffic / self.get_in_lanes_num(self.downstream_id)))/100 ## update value
         print("Reward: ", reward)
         return state_vec, reward, False
+
+    def getAllvehiclesPaths(self):
+        path = []
+        for i in range(0, self.right_Turn_v_list_downstream.size):
+            path.append(self.right_Turn_v_list_downstream[i].vertexList)
+        for i in range(0, self.straight_v_list_downstream.size):
+            path.append(self.straight_v_list_downstream[i].vertexList)
+        for i in range(0, self.right_Turn_v_list.size):
+            path.append(self.right_Turn_v_list[i].vertexList)
+        for i in range(0, self.straight_v_list.size):
+            path.append(self.straight_v_list[i].vertexList)
+
+        for i in range(0, len(self.vehiclesFromDownstream)):
+            path.append(self.vehiclesFromDownstream[i][0].vertexList)
+        for i in range(0, len(self.vehiclesFromUpstream)):
+            path.append(self.vehiclesFromUpstream[i][0].vertexList)
+
+        return path
 
 

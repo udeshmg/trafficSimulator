@@ -2,11 +2,6 @@ from Road_Network.RoadNetwork import RoadNetwork
 from Stat_Reporter.StatReporter import Reporter
 import os
 
-import sys
-old_stdout = sys.stdout
-
-
-
 iterations = 800
 dummyCycles = 0
 rn = RoadNetwork()
@@ -25,7 +20,7 @@ rn.buildGraph(coordx, coordy, radius, False)
 #rn.osmGraph.drawGraph(True, 'time to travel')
 
 #### ---- configuration phase --------###
-rn.roadElementGenerator.isGuided = True
+rn.roadElementGenerator.isGuided = False
 rn.roadElementGenerator.laneDirChange = True
 rn.roadElementGenerator.preLearned = True
 rn.roadElementGenerator.noAgent = False
@@ -33,8 +28,9 @@ rn.autoGenTrafficEnabled = True
 rn.roadElementGenerator.isNoBound = True
 rn.roadElementGenerator.selfLaneChange = False
 rn.roadElementGenerator.enaleDependencyCheck = False
-rn.roadElementGenerator.noLaneChange = False
-rn.roadElementGenerator.limitVehicles = True
+rn.roadElementGenerator.noLaneChange = True
+manaulchange = True
+
 rn.trafficGenerator.trafficPattern = 8
 
 rn.numOfVehiclesPerBlock = 7
@@ -45,8 +41,7 @@ rn.trafficLoader.simulateStartTime = 0
 
 imb = 30
 cost = 12
-location = "Simulate_Data_small grid/temp5/"
-
+location = "Simulate_Data_small grid/temp/"
 #location = "Results/cost/"+str(cost)+"/"
 #location = "temp/"
 if rn.roadElementGenerator.noAgent:
@@ -60,12 +55,16 @@ if rn.roadElementGenerator.noAgent:
     string = "No agent"
 elif rn.roadElementGenerator.laneDirChange:
     if rn.roadElementGenerator.isGuided:
-        file = "laneChange1"+str(rn.numOfVehiclesPerBlock)
+        file = "laneChange2"+str(rn.numOfVehiclesPerBlock)
         string = "Lane change: Guided"
 
     elif rn.roadElementGenerator.noLaneChange:
-        file = "signalOnly1" + str(rn.numOfVehiclesPerBlock)
-        string = "Signal only"
+        if manaulchange:
+            file = "manual1" + str(rn.numOfVehiclesPerBlock)
+            string = "manual"
+        else:
+            file = "signalOnly1" + str(rn.numOfVehiclesPerBlock)
+            string = "Signal only"
     else:
 
         file = "noGuide1"+str(rn.numOfVehiclesPerBlock)
@@ -73,11 +72,6 @@ elif rn.roadElementGenerator.laneDirChange:
 else:
     file = "signalOnly1"+str(rn.numOfVehiclesPerBlock)
     string = "Signal only"
-
-
-os.makedirs(os.path.dirname(location+file+"/message.log"), exist_ok=True)
-log_file = open(location+file+"/message.log","w")
-sys.stdout = log_file
 
 rn.init()
 rn.roadElementGenerator.timeToLaneShift = cost
@@ -133,14 +127,16 @@ for i in range(iterations):
         rn.dependencyG.createVariableDAG(rn.osmGraph.nxGraph, rn.osmGraph.SDpaths)
         rn.dependencyG.drawGraph()'''
 
+    if (i == 2 or i == 430) and manaulchange:
+        rn.setRoadconfig(0 if i == 2 else 1)
     '''if i == 50 or i == 450:
         rn.osmGraph.drawPathOnMap(False, rn.autoGenTrafficEnabled)
         rn.osmGraph.drawGraphWithUserTraffic()
-        rn.dependencyG.createVariableDAG(rn.osmGr aph.nxGraph, rn.osmGraph.SDpaths[-4:len(rn.osmGraph.SDpaths)])
+        rn.dependencyG.createVariableDAG(rn.osmGraph.nxGraph, rn.osmGraph.SDpaths[-4:len(rn.osmGraph.SDpaths)])
         rn.dependencyG.drawGraph()'''
 
     if i == 400:
-        rn.trafficGenerator.trafficPattern = 9
+        rn.trafficGenerator.trafficPattern = 7
         gen = 3
 
 
@@ -181,8 +177,7 @@ for i in range(len(rn.roadElementGenerator.roadList)):
 if saveMode:
     reporter.saveData(location+file)
 
-sys.stdout = old_stdout
-log_file.close()
+
 
 with open(filename, "a") as f:
     f.write("Completed:\n")

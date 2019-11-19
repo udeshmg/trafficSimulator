@@ -20,6 +20,8 @@ class OsmGraph():
         self.SDpaths = []
         self.filteredSDpairs = []
         self.recentPaths = deque(maxlen=20)
+        self.recentPathsWithDemand = deque(maxlen=40)
+        self.minLoad = 5
 
     def clear(self):
         self.SDpairs = []
@@ -449,7 +451,19 @@ class OsmGraph():
 
             path = nx.shortest_path(self.nxGraph, SDList[l][0], SDList[l][1])
             SDList[l].append(path)
-            self.recentPaths.append(path)
+            if path not in self.recentPaths:
+                self.recentPaths.append(path)
+
+            if path not in [row[0] for row in self.recentPathsWithDemand]:
+                self.recentPathsWithDemand.append([path, 1])
+            else:
+                for i in range(len(self.recentPathsWithDemand)):
+                    if self.recentPathsWithDemand[i][0] == path:
+                        demand = self.recentPathsWithDemand[i][1]
+                        del self.recentPathsWithDemand[i]
+                        self.recentPathsWithDemand.append([path, demand+1])
+
+
 
             if [SDList[l][0],SDList[l][1]] not in self.SDpairs:
                 self.SDpairs.append([SDList[l][0],SDList[l][1]])
@@ -468,6 +482,108 @@ class OsmGraph():
             self.SDpaths.append(path)
 
         return source, destination, path
+
+    def allocateLaneBasedOnLoad(self):
+        roadChanges = []
+        print(self.SDpairs)
+        for u, v in self.nxGraph.edges:
+            self.nxGraph.edges[u, v]['down'] = 0
+            self.nxGraph.edges[u, v]['up'] = 0
+
+        self.SDpairs = self.SDpairs[-20:len(self.SDpairs)]
+        self.SDpaths = self.SDpaths[-20:len(self.SDpaths)]
+
+        for i in range(20):
+            load = self.SDpairs[i][2]
+            for j in range(len(self.SDpaths[i]) - 1):
+                if self.nxGraph.nodes[self.SDpaths[i][j]]['id'] < self.nxGraph.nodes[self.SDpaths[i][j + 1]]['id']:
+                    self.nxGraph[self.nxGraph.nodes[self.SDpaths[i][j]]['id']][
+                        self.nxGraph.nodes[self.SDpaths[i][j + 1]]['id']]['up'] += load
+                else:
+                    self.nxGraph[self.nxGraph.nodes[self.SDpaths[i][j]]['id']][
+                        self.nxGraph.nodes[self.SDpaths[i][j + 1]]['id']]['down'] += load
+
+        for u, v in self.nxGraph.edges:
+            imbalance = (self.nxGraph.edges[u, v]['down'] - self.nxGraph.edges[u, v]['up']) / max(
+                (self.nxGraph.edges[u, v]['down'] + self.nxGraph.edges[u, v]['up']), 1)
+
+            minLoad = min(self.nxGraph.edges[u, v]['down'], self.nxGraph.edges[u, v]['up'])
+
+            if imbalance > 0.3:
+                roadChanges.append([self.nxGraph.edges[u, v]['edgeId'], 1])
+            elif imbalance < -0.3:
+                roadChanges.append([self.nxGraph.edges[u, v]['edgeId'], 2])
+
+        print(roadChanges)
+        return roadChanges
+
+    def allocateLaneBasedOnLoadTime(self, pathList):
+        roadChanges = []
+
+        for u, v in self.nxGraph.edges:
+            self.nxGraph.edges[u, v]['down'] = 0
+            self.nxGraph.edges[u, v]['up'] = 0
+
+        for i in range(len(pathList)):
+            for j in range(len(pathList[i])-1):
+                val1 = pathList[i][j]
+                val2 = pathList[i][j+1]
+
+                if self.nxGraph.nodes[val1]['id'] < self.nxGraph.nodes[val2]['id']:
+                    self.nxGraph[val1][val2]['up'] += 1
+                else:
+                    self.nxGraph[val1][val2]['down'] += 1
+
+        for u, v in self.nxGraph.edges:
+            imbalance = (self.nxGraph.edges[u, v]['down'] - self.nxGraph.edges[u, v]['up']) / max(
+                (self.nxGraph.edges[u, v]['down'] + self.nxGraph.edges[u, v]['up']), 1)
+
+            minLoad = min(self.nxGraph.edges[u, v]['down'], self.nxGraph.edges[u, v]['up'])
+
+            if minLoad < self.minLoad:
+                if imbalance > 0.3:
+                    roadChanges.append([self.nxGraph.edges[u, v]['edgeId'], 1])
+                elif imbalance < -0.3:
+                    roadChanges.append([self.nxGraph.edges[u, v]['edgeId'], 2])
+
+
+        return roadChanges
+
+
+    def allocateLaneBasedOnPaths(self):
+        roadChanges = []
+        for u, v in self.nxGraph.edges:
+            self.nxGraph.edges[u, v]['down'] = 0
+            self.nxGraph.edges[u, v]['up'] = 0
+
+        #self.SDpairs = self.SDpairs[-20:len(self.SDpairs)]
+        #self.SDpaths = self.SDpaths[-20:len(self.SDpaths)]
+
+        for i in range(len(self.recentPathsWithDemand)):
+            load = self.recentPathsWithDemand[i][1]
+            for j in range(len(self.recentPathsWithDemand[i][0])-1):
+                val1 = self.recentPathsWithDemand[i][0][j]
+                val2 = self.recentPathsWithDemand[i][0][j+1]
+
+                if self.nxGraph.nodes[val1]['id'] < self.nxGraph.nodes[val2]['id']:
+                    self.nxGraph[val1][val2]['up'] += load
+                else:
+                    self.nxGraph[val1][val2]['down'] += load
+
+        for u, v in self.nxGraph.edges:
+            imbalance = (self.nxGraph.edges[u, v]['down'] - self.nxGraph.edges[u, v]['up']) / max(
+                (self.nxGraph.edges[u, v]['down'] + self.nxGraph.edges[u, v]['up']), 1)
+
+            minLoad = min(self.nxGraph.edges[u, v]['down'], self.nxGraph.edges[u, v]['up'])
+
+            if minLoad > 25:
+                if imbalance > 0.3:
+                    roadChanges.append([self.nxGraph.edges[u, v]['edgeId'], 1])
+                elif imbalance < -0.3:
+                    roadChanges.append([self.nxGraph.edges[u, v]['edgeId'], 2])
+
+
+        return roadChanges
 
 
 

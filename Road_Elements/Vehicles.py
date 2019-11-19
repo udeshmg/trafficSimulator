@@ -1,6 +1,6 @@
 from Stat_Reporter.StatReporter import Reporter
 import numpy as np
-
+import copy
 class VehicleBlock:
 
     '''
@@ -16,7 +16,7 @@ class VehicleBlock:
             current_time
             turn_direction
     '''
-    def __init__(self, num_vehicles, direc, id = 0, debugLevel=2):
+    def __init__(self, num_vehicles, direc, id = 0, debugLevel=2, path=None):
         self.num_vehicles = num_vehicles
         self.current_time = 0
         self.abs_time = 0
@@ -26,6 +26,7 @@ class VehicleBlock:
         self.freeFlowTime = 0
         self.turn_direction = np.array(direc)
         self.turn_direction = np.append(self.turn_direction, 'S')
+        self.vertexList = np.array(path)
         self.debugLevel = debugLevel
         self.reporter = Reporter.getInstance()
         self.routeFinished = False
@@ -118,6 +119,9 @@ class VehicleBlock:
     def update_direction(self):
         if self.turn_direction.size != 0:
             self.turn_direction = np.delete(self.turn_direction, 0)
+
+        if self.vertexList.size != 0:
+            self.vertexList = np.delete(self.vertexList, 0)
 
     def resetTime(self):
         self.current_time = 0

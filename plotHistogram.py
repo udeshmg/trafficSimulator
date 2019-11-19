@@ -31,12 +31,12 @@ lane_change_withGuide = [241.91, 242.25, 274.75, 358.58]
 lane_change_withGuideStd =   [0, 0, 0, 0]
 
 
-file = pd.read_csv("Complete_Data/network6/backup/networktype4.csv")
+file = pd.read_csv("Complete_Data/network10/networktype4.csv")
 
-col1 = file['Traffic signals only']
-col2 = file['Lane change system with no guidance']
-col3 = file['Lane change system with guidance']
-col4 = file['demand']
+col1 = file['static']
+col2 = file['LD']
+col3 = file['HLA']
+col4 = file['DLA']
 
 
 
@@ -74,12 +74,12 @@ rects4 = ax.bar(ind+width, col4, width,
 
 # axes and labels
 ax.set_xlim(-width,len(ind)+width)
-ax.set_ylim(0,8.6)
+ax.set_ylim(4, 16)
 ax.set_ylabel('Average travel time (min)',fontsize=24)
 ax.set_xlabel('Up sampled factor',fontsize=24)
 #ax.set_title('Parameter:'+description)
 #xTickMarks = [5,6,7]
-xTickMarks = [6,7,8]
+xTickMarks = [3,4,5]
 ax.set_xticks(ind+2*width)
 xtickNames = ax.set_xticklabels(xTickMarks)[0:4]
 
@@ -87,10 +87,10 @@ ax.tick_params(axis="y", labelsize=24)
 plt.setp(xtickNames, fontsize=24)
 
 ## add a legend
-ax.legend( (rects4[0], rects1[0], rects2[0], rects3[0]), ('DLA','TS',
-                                                'LD',
-                                                'HLA'), fontsize=24 )
+ax.legend( (rects1[0], rects4[0], rects2[0], rects3[0]), ('no-LA',
+                                                'DLA', 'LLA',
+                                                'CLLA'), fontsize=24 )
 plt.gcf().subplots_adjust(bottom=0.15)
-plt.gcf().subplots_adjust(left=0.15)
+plt.gcf().subplots_adjust(left=0.2)
 plt.gcf().set_size_inches(7,7)
 plt.show()

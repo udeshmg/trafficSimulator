@@ -1,4 +1,5 @@
 from Agent.ddqn_parallel import DQNAgentNoBound
+from Agent.ddqn_lane import DQNAgentLane
 from Road_Elements.Intersection3d import Intersection
 from Road_Elements.Road import Road
 from Road_Elements.Vehicles import VehicleBlock
@@ -79,12 +80,12 @@ dp = Display()
 reporter = Reporter()
 #create Roads
 numRoads = 4
-numIterations = 1200
+numIterations = 18000
 stepSize = 10
 laneDirChange = True
 isGuided = False
 save = False
-load = True
+load = False
 
 reporter.configure(1,1,numIterations)
 
@@ -100,8 +101,8 @@ for i in range(numRoads):
 #get number of states
 #stateSize, actionSize = rdGenerator.getAgentStateActionSpace(numRoads)
 
-stateSize, actionSize = numRoads*3+1, numRoads*(3**numRoads)
-agent = DQNAgentNoBound(stateSize,actionSize,intersection,numRoads,1,laneDirChange,isGuided)
+stateSize, actionSize = numRoads*3, 3**numRoads
+agent = DQNAgentLane(stateSize,actionSize,intersection,numRoads,1,laneDirChange,isGuided)
 agent.debugLvl = 3
 
 if load:
@@ -120,7 +121,7 @@ for i in range(numIterations):
     for j in range(len(roadList)):
         roadList[j].step(10)
 
-    vehicleVector = VehicleGenerator(i%9000,numRoads)
+    vehicleVector = VehicleGenerator(1,numRoads)
 
     if i % 9000 == 0:
         k += 2

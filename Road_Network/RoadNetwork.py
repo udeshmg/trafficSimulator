@@ -9,7 +9,8 @@ from Traffic_loader.TrafficCollector import TrafficCollector
 from Traffic_loader.TrafficGenerator import TrafficGenerator
 from Stat_Reporter.StatReporter import Reporter
 from Dependency_Graph.DependencyGraph import DependencyGraph
-
+import numpy as np
+import time
 class RoadNetwork:
 
     def __init__(self):
@@ -20,14 +21,20 @@ class RoadNetwork:
         self.trafficGenerator = TrafficGenerator()
         self.timeStep = 10
         self.dependencyG = DependencyGraph()
-        self.depth = 3
+        self.depth = 2
         self.threshold = 12
         self.load_th = 0
-        self.recentPaths = 20
+        self.recentPaths = 30
         self.numOfVehiclesPerBlock = 1
         self.autoGenTrafficEnabled = False
+        self.demandCalculationFreq = 10 #mins
+        self.manualAllocate = False
+        self.depFreq = 2
 
-
+        self.demandBuffer = []
+        self.rand = []
+        for i in range(30):
+            self.rand.append(np.random.randint(5))
 
 
     def buildGraph(self, long, lat, diameter, osm=True):
@@ -48,7 +55,7 @@ class RoadNetwork:
         self.roadElementGenerator.connectElements()
         print("Roads Elements generated.")
 
-    def generateVehicles(self, source, path, numOfVehicles=1, debugLvl=3, indexAtfile=0):
+    def generateVehicles(self, source, path, numOfVehicles=1, debugLvl=3, indexAtfile=0, time=0):
         for i in range(numOfVehicles):
             vb, startEdge = self.vehicleGenerator.generateVehicleWithId(path, debugLvl, indexAtfile)
             if vb != None or startEdge != None:
@@ -59,26 +66,43 @@ class RoadNetwork:
                 else:
                     self.roadElementGenerator.roadList[rid - 1].add_block(vb, 'UP')
 
+                if self.manualAllocate:
+                    self.demandBuffer.append(vb.vertexList)
+
+
+
 
         #print(self.roadElementGenerator.roadList[rid - 1].get_num_vehicles(self.roadElementGenerator.roadList[rid - 1].downstream_id,'T'))
 
     def addTrafficFromData(self,step):
 
+
         if not self.autoGenTrafficEnabled:
             vehicleList = self.trafficLoader.getData(step)
             nodeList = self.osmGraph.getNearestNode(vehicleList)
             for n in nodeList:
-                self.generateVehicles(n[0],n[2],self.numOfVehiclesPerBlock, 2, n[3])
+                self.generateVehicles(n[0],n[2],self.numOfVehiclesPerBlock, 2, n[3], step)
         else:
-            for i in self.trafficGenerator.getTrafficData():
+
+
+            for index, i in enumerate(self.trafficGenerator.getTrafficData()):
                 n = self.osmGraph.getPathFromNodes(i[0],i[1],i[2])
-                print("Traffic Data Added: ", n[0],n[2],i[2])
-                self.generateVehicles(n[0],n[2],i[2], 2)
+                print("Traffic Data Added: ", n[0],n[2],self.rand[index])
+                self.generateVehicles(n[0],n[2],i[2], 2, step)
 
 
  # source and destination
 
     def simulateOneStep(self, stepNumber):
+
+        if stepNumber % 30:
+            self.rand.clear()
+            for i in range(30):
+                self.rand.append(np.random.randint(5))
+
+        if (stepNumber%self.demandCalculationFreq == 0 ) and self.manualAllocate: #mins
+            self.setRoadconfigPath()
+            self.demandBuffer.clear()
 
         for i in range(len(self.roadElementGenerator.agentList)):
             self.roadElementGenerator.agentList[i].actOnIntersection()
@@ -89,7 +113,7 @@ class RoadNetwork:
         if self.roadElementGenerator.isGuided:
             self.dependencyCheck(stepNumber)
 
-        if self.roadElementGenerator.selfLaneChange and self.roadElementGenerator.enaleDependencyCheck:
+        if self.roadElementGenerator.selfLaneChange and self.roadElementGenerator.enableDependencyCheck:
             self.dependencyCheckRoad(stepNumber)
 
         for i in range(len(self.roadElementGenerator.agentList)):
@@ -108,9 +132,59 @@ class RoadNetwork:
                                                                                                 roadChanges[i][
                                                                                                     0] - 1].upstream_id,
                                                                                             val)
-    def dependencyCheck(self,stepNumber):
 
-        if stepNumber%2 == 0 and stepNumber > 32:
+    def setRoadconfigPath(self):
+        #roadChanges = self.osmGraph.allocateLaneBasedOnPaths()
+        roadChanges = self.osmGraph.allocateLaneBasedOnLoadTime(self.demandBuffer)
+
+        for i in range(len(roadChanges)):
+            if roadChanges[i][1] == 1:
+                if self.roadElementGenerator.roadList[roadChanges[i][0]-1].get_in_lanes_num(
+                        self.roadElementGenerator.roadList[roadChanges[i][0]-1].upstream_id) == 2:
+                    self.roadElementGenerator.roadList[roadChanges[i][0]-1].change_direction('IN',
+                                                                                      self.roadElementGenerator.roadList[
+                                                                                          roadChanges[i][0]-1].upstream_id,
+                                                                                      1)
+
+                else:
+                    self.roadElementGenerator.roadList[roadChanges[i][0]-1].change_direction('IN',
+                                                                                      self.roadElementGenerator.roadList[
+                                                                                          roadChanges[i][0]-1].upstream_id,
+                                                                                      0)
+            else:
+                if self.roadElementGenerator.roadList[roadChanges[i][0] - 1].get_in_lanes_num(
+                        self.roadElementGenerator.roadList[roadChanges[i][0] - 1].upstream_id) == 4:
+                    self.roadElementGenerator.roadList[roadChanges[i][0] - 1].change_direction('OUT',
+                                                                                               self.roadElementGenerator.roadList[
+                                                                                                   roadChanges[i][
+                                                                                                       0] - 1].upstream_id,
+                                                                                               1)
+
+                else:
+                    self.roadElementGenerator.roadList[roadChanges[i][0] - 1].change_direction('OUT',
+                                                                                               self.roadElementGenerator.roadList[
+                                                                                                   roadChanges[i][
+                                                                                                       0] - 1].upstream_id,
+                                                                                               0)
+
+    def dependencyCheck(self,stepNumber):
+        if stepNumber % self.depFreq == 0:
+            #self.osmGraph.SDpaths = self.osmGraph.SDpaths[-20:len(self.osmGraph.SDpaths)]
+            #self.dependencyG.createVariableDAG(self.osmGraph.nxGraph, self.osmGraph.SDpaths)
+
+            #paths = list(self.osmGraph.recentPaths)
+            paths  = []
+            for i in self.roadElementGenerator.roadList:
+                if len(i.getAllvehiclesPaths()) > 0:
+                    for j in i.getAllvehiclesPaths():
+                        if len(j) > 0:
+                            #print("Path: ", i.id, j)
+                            paths.append(j)
+
+            #print(paths)
+            self.dependencyG.createVariableDAG(self.osmGraph.nxGraph, paths)
+
+        if stepNumber%self.depFreq == 0 and stepNumber > 32:
             self.dependencyG.assignLoadToNodes(self.roadElementGenerator.roadList)
 
             laneChangeRidList = []
@@ -159,12 +233,28 @@ class RoadNetwork:
                     .change_direction(action, self.roadElementGenerator.roadList[road_changes[j][0]-1].upstream_id)
 
 
-        if stepNumber%20 == 0:
+        '''if stepNumber%20 == 0:
             #self.osmGraph.SDpaths = self.osmGraph.SDpaths[list(self.recentPaths)]
             paths = list(self.osmGraph.recentPaths)
-            self.dependencyG.createVariableDAG(self.osmGraph.nxGraph,paths)
+            self.dependencyG.createVariableDAG(self.osmGraph.nxGraph,paths)'''
 
     def dependencyCheckRoad(self, stepNumber):
+        if stepNumber % 2 == 0:
+            #self.osmGraph.SDpaths = self.osmGraph.SDpaths[-20:len(self.osmGraph.SDpaths)]
+            #self.dependencyG.createVariableDAG(self.osmGraph.nxGraph, self.osmGraph.SDpaths)
+
+            #paths = list(self.osmGraph.recentPaths)
+            paths  = []
+            for i in self.roadElementGenerator.roadList:
+                if len(i.getAllvehiclesPaths()) > 0:
+                    for j in i.getAllvehiclesPaths():
+                        if len(j) > 0:
+                            #print("Path: ", i.id, j)
+                            paths.append(j)
+
+            #print(paths)
+            self.dependencyG.createVariableDAG(self.osmGraph.nxGraph, paths)
+
 
         if stepNumber % 2 == 0 and stepNumber > 10:
             self.dependencyG.assignLoadToNodes(self.roadElementGenerator.roadList)
@@ -212,9 +302,7 @@ class RoadNetwork:
                     .change_direction(action,
                                       self.roadElementGenerator.roadList[road_changes[j][0] - 1].upstream_id)
 
-        if stepNumber % 8 == 0:
-            self.osmGraph.SDpaths = self.osmGraph.SDpaths[-20:len(self.osmGraph.SDpaths)]
-            self.dependencyG.createVariableDAG(self.osmGraph.nxGraph, self.osmGraph.SDpaths)
+
 
 #rn.generateVehicles(3,2,3)
 #rn.generateVehicles(12,3,3)

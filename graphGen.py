@@ -5,8 +5,8 @@ iterations = 360
 rn = RoadNetwork()
 reporter = Reporter()
 #rn.buildGraph(-73.9224, 40.746, 250)
-rn.buildGraph(-73.92, 40.75, 600)
-#rn.buildGraph(-73.996575, 40.747477, 600)
+#rn.buildGraph(-73.92, 40.75, 600)
+rn.buildGraph(-73.996575, 40.747477, 600)
 #rn.buildGraph(-73.995830, 40.744612, 1200)
 #rn.buildGraph(-73.933, 40.758,600)
 #rn.buildGraph(-73.9189, 40.7468, 500)
@@ -49,7 +49,7 @@ for i in range(20):
     rn.osmGraph.clear()
     rn.trafficLoader.clear()
 
-    start = i*5
+    start = 420+i*5
     window = 5
     rn.trafficLoader.simulateStartTime = start
     rn.addTrafficFromData(window)

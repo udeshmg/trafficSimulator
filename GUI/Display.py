@@ -48,13 +48,13 @@ class Display:
         plt.scatter(i, average_val[3], edgecolors='b', c=None, s=1)
 
     @staticmethod
-    def single_arr(arr, figure_num=6, edgeclr='b', name='Add the title name', legendS=('LD','HLA','DLA','TS','Temp')):
+    def single_arr1(arr, figure_num=6, edgeclr='b', name='Add the title name', legendS=('LD','HLA','DLA','TS','Temp')):
         fig = plt.figure(figure_num)
 
         #plt.title(name)
         plt.xlim(390,720)
         plt.ylim(3,8)
-        #plt.legend('TS')
+        #plt.legend('TS')9
         plt.xlabel('time steps',fontsize=16)
         plt.ylabel('Average travel time \n (min)',fontsize=16)
         plt.tick_params(labelsize=16)
@@ -68,6 +68,16 @@ class Display:
         plt.gcf().subplots_adjust(bottom=0.2)
         plt.gcf().subplots_adjust(left=0.2)
 
+    @staticmethod
+    def single_arr(arr, figure_num=6, edgeclr='b', name='Add the title name'):
+        plt.figure(figure_num)
+        plt.title(name)
+        #plt.xlim(400,800)
+        plt.xlabel('time steps')
+        plt.ylabel('Time(s)')
+        #plt.legend('Guided lane change')
+        i = [i for i in range(len(arr))]
+        plt.scatter(i, arr, edgecolors=edgeclr, c=None, s=1)
 
 
     @staticmethod
@@ -117,7 +127,7 @@ class Display:
     def histogram(arr,title=5):
         plt.figure(title)
         #plt.ylim(0,max(arr))
-        plt.xlim(0.8,10)
+        plt.xlim(0.8,15)
         #plt.title(title)
         plt.hist(arr, color='blue', edgecolor='black', bins=[i/10 for i in range(1,150)])
         plt.tick_params( labelsize=36)

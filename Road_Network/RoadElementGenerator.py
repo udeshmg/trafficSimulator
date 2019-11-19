@@ -3,6 +3,7 @@ from Road_Elements.Road import Road
 from Road_Elements.Vehicles import VehicleBlock
 from Road_Elements.Intersection3d import Intersection
 from Agent.ddqn_parallel import DQNAgentNoBound
+from Agent.ddqn_lane import DQNAgentLane
 from Agent.ddqn import DQNAgent
 from Agent.dummyAgent import dummyAgent
 from Road_Elements.RoadConnector import RoadConnector
@@ -31,7 +32,7 @@ class RoadElementGenerator:
         self.limitVehicles = False
 
         self.selfLaneChange = False
-        self.enaleDependencyCheck = False
+        self.enableDependencyCheck = False
 
     def getGraph(self,osmG):
         self.osmGraph = osmG
@@ -39,11 +40,11 @@ class RoadElementGenerator:
     def getAgentStateActionSpace(self,numRoads):
         if self.laneDirChange:
             if self.isNoBound:
-                action = numRoads * (3 ** numRoads)  # traffic phase x (3 actions for lane change for each road)
-                state = 1 + 3 * numRoads
+                action = 3 ** numRoads  # traffic phase x (3 actions for lane change for each road)
+                state = 3 * numRoads
             else:
                 action = numRoads*(3**numRoads) # traffic phase x (3 actions for lane change for each road)
-                state = 1+5*numRoads
+                state = 5*numRoads
         else:
             action = numRoads
             state = 1+2*numRoads
@@ -56,12 +57,12 @@ class RoadElementGenerator:
                 for i in range(len(self.agentList)):
                     if self.agentList[i].num_roads == 3:
                         if self.isNoBound:
-                            self.agentList[i].load(Path(string+"/DDQN_lane_3noBound"))
+                            self.agentList[i].load(Path(string+"/DDQN_lane_3test"))
                         else:
                             self.agentList[i].load(Path(string+"/DDQN_lane_3_1"))
                     if self.agentList[i].num_roads == 4:
                         if self.isNoBound:
-                            self.agentList[i].load(Path(string + "/DDQN_lane_4noBound"))
+                            self.agentList[i].load(Path(string + "/DDQN_lane_4test"))
                         else:
                             self.agentList[i].load(Path(string+"/DDQN_lane_4_1"))
             else:
@@ -94,7 +95,7 @@ class RoadElementGenerator:
             self.roadList[-1].imbalanceCounter = self.imbalance
             self.roadList[-1].checkConsistent = self.timeToLaneShift
             self.roadList[-1].selfLaneChange = self.selfLaneChange
-            self.roadList[-1].enableDependencyCheck = self.enaleDependencyCheck
+            self.roadList[-1].enableDependencyCheck = self.enableDependencyCheck
             self.roadList[-1].limitVehicles = self.limitVehicles
 
             #print("Road: UP: ",self.roadList[-1].id, self.roadList[-1].upstream_id, self.roadList[-1].downstream_id)
@@ -116,7 +117,7 @@ class RoadElementGenerator:
                     stateSize, actionSize = self.getAgentStateActionSpace(numRoads)
                     if not self.noAgent:
                         if self.isNoBound:
-                            self.agentList.append(DQNAgentNoBound(stateSize, actionSize, self.intersectionList[-1],
+                            self.agentList.append(DQNAgentLane(stateSize, actionSize, self.intersectionList[-1],
                                                    numRoads, self.osmGraph.nxGraph.nodes[n]['id'],
                                                    self.laneDirChange, self.isGuided))
                             self.agentList[-1].restrictLaneChange = self.noLaneChange

@@ -7,36 +7,42 @@ meanTime = np.empty(shape=0)
 reporter = Reporter()
 reporter.configure(75,125,480)
 #reporter.configure(12,60,799)
-window = 400
-j = 3
+window = 480
+j = 1
 #data = pd.read_csv("Simulate_Data_new/backup/networktype1/laneChange17/vehicle_data.csv")
 #path  = "Simulate_Data_new/backup/networktype2/"
 #path = "temp/"
-path  = "Complete_Data/network5/"
-#path = "Simulate_Data_small grid/temp5/"
+path  = "Complete_Data/network5/results/"
+#path = "Simulate_Data_small grid/temp/backup/"
 #path = "Simulate_cost_of_lane_change/"
-#path = "Results/cost/"+str(4)+"/"
+#path = "Complete_Data/cost/"+str(4)+"/"
 i = 0
 #path = "Results/length/backup/"+str(i)+"/"
 #path = "Results/Imbalance Factor/backup/"+str(i)+"/"
 #config = "signalOnly"
 #config = "laneChange"
-config = ["backup/laneChange",
-          "laneChange",
-          "laneChange","noGuide","laneChange", "laneChange"]
+config = ["manualnoAgent",
+          "manualnoAgent",
+          "manualnoAgent",
+          "manualnoAgent",
+          "manualnoAgent", "laneChange", "laneChange", "manualnoAgent"]
 #config = "noAgent"
-size = "7"
+size = "5"
 
-name = ["1",
-        "2",
-        "3",
-        "1",
-        #"1",
-        #"1"
+name = ["15",
+        "30",
+        "60",
+        "90",
+        "120",
+        #"3",
+        #"",
+        #"90",
+        #"120",
+        #"30"
         ]
 
 colorMap = ["g", "b", "r", "gray", "m", "c", "brown", "peru", "purple", "crimson"]
-folder = [30,30,30,40,90]
+folder = [1,2,3,4,5,6]
 '''type = name[0]
 file = path+config+type+size
 reporter.loadFromFile(file)
@@ -70,7 +76,7 @@ reporter.roadConfiguration(3,config)
 print(reporter.vehicleData1.shape)'''
 
 for i in range(len(name)):
-    #path = "Results/Imbalance Factor/" + str(folder[i]) + "/"
+    #path = "Complete_Data/depth/" + str(folder[i]) + "/"
     file = path+config[i]+name[i]+size
     reporter.loadFromFile(file)
     reporter.allIntersectionWaitingTime(window, j, colorMap[i], name='Total Wait time: '+config[i]+str(i))

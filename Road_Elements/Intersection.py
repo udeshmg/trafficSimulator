@@ -10,7 +10,7 @@ from Road_Elements.Lane import Lane
 from Road_Elements.Vehicles import VehicleBlock
 from Road_Elements.Road import Road
 
-alpha = 0.2 # reducing this diverge the results in the case of Multilane conf.
+alpha = 0.8 # reducing this diverge the results in the case of Multilane conf.
 beta = 0.01
 TIME_STEP = 10
 DEBUG = 3

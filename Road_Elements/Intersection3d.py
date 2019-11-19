@@ -341,7 +341,7 @@ class Intersection:
         if(self.prev_wait_time == 0) & (next_wait_time == 0):
             reward = 0
         elif self.neg_reward > 0:
-            reward = -1
+            reward = 0.2
         else:
             reward = (1 - alpha)*((self.prev_wait_time - next_wait_time)/max(self.prev_wait_time,next_wait_time) - next_wait_time/self.max_wait_time) - alpha*(imbalance/maxVehicleGaP)
 

@@ -25,7 +25,7 @@ class Reporter():
     def loadFromFile(self,string):
         for i in range(self.nodes):
             data = pd.read_csv(Path(string+'/intersection'+str(i+1)+'.csv'))
-            self.intersectionData[i] = data
+            #self.intersectionData[i] = data
 
         data = pd.read_csv(Path(string + '/vehicle_data.csv'))
 
@@ -48,7 +48,7 @@ class Reporter():
 
         counter = 0
         for i in temp:
-            if i > 4:
+            if i > 10:
                 counter += 1
         print("Dev: ", counter/len(temp))
 
@@ -154,7 +154,7 @@ class Reporter():
 
             vehicleTime = np.append( vehicleTime, sum/max( 1,count))
 
-        #print(vehicleTime)
+        print("Mean:", np.mean([i[2] for i in self.vehicleData1]))
         self.dp.single_arr(vehicleTime, 50, edgeclr=color, name=name)
         return vehicleTime[-1]
 

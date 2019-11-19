@@ -13,6 +13,7 @@ from keras.optimizers import RMSprop
 from keras import backend as K
 K.set_epsilon(1e-03)
 import sys
+import matplotlib.pyplot as plt
 
 # q_table = np.zeros([env.observation_space.n, env.action_space.n])
 
@@ -66,6 +67,9 @@ class DQNA_laneManager:
         self.debugLvl = 3
         self.id = id
         self.road = road
+
+        #stat agent
+        self.reward = np.empty(shape=0)
 
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
@@ -137,6 +141,7 @@ class DQNA_laneManager:
         self.model.save_weights(name)
 
 
+
     def actOnRoad(self):
         self.action = self.act(self.states)
         self.road.act(self.action)
@@ -146,6 +151,7 @@ class DQNA_laneManager:
 
         next_states, reward, is_done = self.road.getStates()
         next_states = np.reshape(next_states, [1, self.state_size])
+        self.reward = np.append(self.reward, reward)
 
         print("Next state: ", next_states)
         self.remember(self.states, self.action, reward, next_states, is_done)
@@ -159,3 +165,7 @@ class DQNA_laneManager:
             self.copy_model()
 
         self.iter += 1
+
+    def plotReward(self):
+        plt.scatter([i for i in range(len(self.reward))], self.reward)
+        plt.show()
